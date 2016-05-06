@@ -19,11 +19,12 @@ class Image ():
         self.lista_pos_localizacao = []
         self.lista_direcoes = []
         self.lista_compara_distancias = []
+        self.lista_compara_orientacoes = []
 
     # Salva matriz com valores do ultimo mapeamento feito e ultimo posicionamento
     def salvaMapeado(self, filename, matriz, ultimaPos):
         with open (filename, 'w') as f:
-            f.write("%d%d\n" %(ultimaPos[0], ultimaPos[1]))
+            f.write("%d %d\n" %(ultimaPos[0], ultimaPos[1]))
             for lin in matriz:
                 for coluna in lin:
                     f.write("%d"%(coluna))
@@ -608,10 +609,12 @@ class Automatico():
    
    
 if __name__ == "__main__":
-    partida = [10,16]     #(linha, coluna)
+    partida = [11,15]     #(linha, coluna)
     sensor = Sensor()
     direcoes = ['norte', 'leste', 'sul', 'oeste']
     orientacao = Orientacao()
+    mapeamentoDoRobo = []
+    original = True
     comando = None
     anda = Desloca()
     auto = Automatico()
@@ -630,7 +633,11 @@ if __name__ == "__main__":
             print 'Já existe um mapa cadastrado'
             arq.leArquivoMapeado()
             img = Image(arq.numColunas, arq.numLinhas)
-            print 'Ultima posição: LINHA:'+ arq.ultimaPos[0], 'COLUNA:'+ arq.ultimaPos[1]
+            #Variavel para guardar a ultima posição separando por ' ' a=1º Pos b=2ª Pos
+            string = arq.ultimaPos
+            a,b = string.split(' ')
+            
+            print '\nUltima posição: LINHA:'+ a, 'COLUNA:'+ b ,'\n'
             print arq.matrizMapeada
 
             arq.matriz = arq.matrizMapeada
@@ -643,6 +650,12 @@ if __name__ == "__main__":
             sensor.distanciasOriginal[4] = sensor.distanciasMapeadas[4]
             print sensor.distanciasOriginal
             
+            #Guarda o escanemanto feito pelo robo e não as particulas simuladas
+            if original is True:
+                mapeamentoDoRobo = sensor.distanciasOriginal
+                original = False
+            
+            print mapeamentoDoRobo
             # 2 loops para percorrer todas posições que forem igual a 3 e 4
             for y in range(arq.numLinhas):
                 for x in range(arq.numColunas):
@@ -675,14 +688,18 @@ if __name__ == "__main__":
             # Esta parte é responsável por eliminar todas possiveis posições deixando apenas 1
             cont = 0
             nort = 0
-            comand = 'F'                
+            comand = 'F'      
             while len(img.lista_pos_localizacao) > 1:
                 # Gira 360º mapeando cada direção para tentar achar sua localização
                 while cont < 4 and len(img.lista_pos_localizacao) > 1:
                     # Limpa a lista de escaneamento
                     img.lista_compara_distancias = []
-                    sensor.distanciasOriginal = [0,0,0,0,0]  
-                    print '\n',direcoes[cont],'\n'
+                    img.lista_compara_orientacoes = []
+                    sensor.distanciasOriginal = [0,0,0,0,0] 
+                    
+                    print mapeamentoDoRobo
+
+                    print '\n',direcoes[cont].upper,'\n'
                     #Para cada posição realiza um loop de escanemento e comparação
                     for posicao in img.lista_pos_localizacao:
                         y,x = posicao
@@ -697,9 +714,9 @@ if __name__ == "__main__":
                         img.lista_compara_distancias.append(sensor.distanciasOriginal)
                         sensor.distanciasOriginal = [0,0,0,0,0]
                         # Salva imagem do escaneamento
-                        img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
-                        
+
+                    img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+                    anda.contaImg = anda.contaImg + 1
                     cont = cont + 1   # Muda a direção
                     excluir = []
                     print img.lista_compara_distancias
@@ -712,8 +729,8 @@ if __name__ == "__main__":
                         del img.lista_compara_distancias[i]
                         del img.lista_pos_localizacao[i]
                         del img.lista_direcoes[i]
-                        img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                    img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+                    anda.contaImg = anda.contaImg + 1
                         
                 cont = 0
                 # Se Mesmo girando 360º Graus não sobrou apenas uma posição começa a andar e escanear
@@ -785,7 +802,7 @@ if __name__ == "__main__":
                 print 'Comando não conhecido!'
 
     #Salva os passos em um txt
-    anda.salvaPassos('Comandos utilizados.txt')
+    #anda.salvaPassos('Comandos utilizados.txt')
     
     #printa todos os comando da lista
     for i in range(len(anda.listaComandos)):
