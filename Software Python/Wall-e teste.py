@@ -386,6 +386,7 @@ class Desloca():
         self.destino = [0,0]
         self.contaImg = 0
         self.frente = 'norte'
+        self.comando = None
         
     def anda(self, partid, frent, orientacao, img, comando, diretorio):
         partida = partid
@@ -603,14 +604,156 @@ class Automatico():
                         
                     elif sensor.distanciasMapeadas[2] == 0:               # 90º graus
                         partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                    
         return 'SAIR'
    
    
    
+class EncontraPossiveisPosicoes():
+    def verificaTodasPosicoes(self, arq, direcoes, sensor, img, anda):
+        # 2 loops para percorrer todas posições que forem igual a 3 e 4 e salva 
+        for y in range(arq.numLinhas):
+            for x in range(arq.numColunas):
+                print 'Valor da posição=', arq.matrizMapeada[y][x]
+                
+                # Se a posição for igual 3 ou 4 mapeia em todas direções e compara com valores recebidos do robô
+                if arq.matrizMapeada[y][x] == 3 or arq.matrizMapeada[y][x] == 4:
+                    for direcao in direcoes:
+                        print direcao.upper()
+                        sensor.percorreAngulos([y,x], direcao, img, arq)
+                        print sensor.distanciasOriginal
+                        print sensor.distanciasMapeadas
+                        
+                        # Se valores de mapeamento forem igual a do robô é uma possivel posição identificada com numero 5
+                        if all(map(operator.eq, sensor.distanciasOriginal, sensor.distanciasMapeadas)):
+                            img.salvaValor(y,x,5)
+                            img.lista_direcoes.append(direcao)
+                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+                            anda.contaImg = anda.contaImg + 1
+                        else:
+                            print 'Não são compativeis'
+                else:
+                    print 'Não é possivel estar aqui. Possivel parede!'
+        img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+        anda.contaImg = anda.contaImg + 1
+        print '\n',img.lista_pos_localizacao
+        print img.lista_direcoes,'\n'
+        
+        
+    def eliminaPosicoesDoVetor(self, arq, direcoes, sensor, img, anda):
+        cont = 0    #Contador indicando as direções para o robo virar N, L, S, O
+        nort = 0    
+        while len(img.lista_pos_localizacao) > 1:
+            # Gira 360º mapeando cada direção para tentar achar sua localização
+            while cont < 4 and len(img.lista_pos_localizacao) > 1:
+                # Limpa a lista de escaneamento
+                img.lista_compara_distancias = []
+                sensor.distanciasOriginal = [0,0,0,0,0] 
+                
+                print mapeamentoDoRobo
+
+                print '\n',direcoes[cont],'\n'
+                
+                #Gira todos para direita e compara com a leitura feita pelo robo
+                contPos = 0     #Contador da posição dentro da lista de direções
+                for posicao in img.lista_pos_localizacao:
+                    partida = anda.anda(posicao, img.lista_direcoes[contPos], orientacao, img, 'D', arq.diretorio)
+                    contPos = contPos + 1
+                    lista_direcoes_atualizada.append(anda.frente)
+                    print img.lista_direcoes
+                    print lista_direcoes_atualizada
+                
+                contPos = 0     #Contador da posição dentro da lista de direções ZERADO
+                #Para cada posição realiza um loop de escanemento e comparação
+                for posicao in img.lista_pos_localizacao:
+                    y,x = posicao
+                    sensor.percorreAngulos([y,x], lista_direcoes_atualizada[contPos], img, arq)
+                    #Variavel recebe valores esaneados para não dar erro de receber o mesmo valor
+                    sensor.distanciasOriginal[0] = sensor.distanciasMapeadas[0]
+                    sensor.distanciasOriginal[1] = sensor.distanciasMapeadas[1]
+                    sensor.distanciasOriginal[2] = sensor.distanciasMapeadas[2]
+                    sensor.distanciasOriginal[3] = sensor.distanciasMapeadas[3]
+                    sensor.distanciasOriginal[4] = sensor.distanciasMapeadas[4]
+                    # Inclui na lista de escaneamentos as posições encontradas e logo depois zera a variavel para liberar para proxima
+                    img.lista_compara_distancias.append(sensor.distanciasOriginal)
+                    sensor.distanciasOriginal = [0,0,0,0,0]
+                    # Salva imagem do escaneamento
+
+                img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+                anda.contaImg = anda.contaImg + 1
+                cont = cont + 1   # Muda a direção
+                excluir = []
+                print img.lista_compara_distancias
+                for num in range(len(img.lista_compara_distancias)):
+                    if all(map(operator.eq, img.lista_compara_distancias[0], img.lista_compara_distancias[num])) and len(img.lista_compara_distancias) > 1:
+                        print 'continua'
+                    else:
+                        excluir.append(num)
+                for i in reversed(excluir):
+                    del img.lista_compara_distancias[i]
+                    del img.lista_pos_localizacao[i]
+                    del img.lista_direcoes[i]
+                img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+                anda.contaImg = anda.contaImg + 1
+                    
+            cont = 0
+            # Se Mesmo girando 360º Graus não sobrou apenas uma posição começa a andar e escanear
+            # Anda para o norte até encontrar parede e escaneia posição por posição até a parede ao sul
+            if sensor.distanciasMapeadas[4] != 0 and nort != 1 and len(img.lista_pos_localizacao) > 1:
+                print img.lista_pos_localizacao
+                for indice, pos in enumerate(img.lista_pos_localizacao):
+                    partida = anda.anda(pos, 'norte', orientacao, img, 'F', arq.diretorio)
+                    img.lista_pos_localizacao[indice] = partida
+                print img.lista_pos_localizacao
+            
+            elif sensor.distanciasMapeadas[4] == 0 and len(img.lista_pos_localizacao) > 1:
+                nort = 1
+                print img.lista_pos_localizacao
+                for indice, pos in enumerate(img.lista_pos_localizacao):
+                    partida = anda.anda(pos, 'sul', orientacao, img, 'F', arq.diretorio)
+                    img.lista_pos_localizacao[indice] = partida
+                print img.lista_pos_localizacao
+            
+            elif sensor.distanciasMapeadas[0] != 0 and nort == 1 and len(img.lista_pos_localizacao) > 1:
+                print img.lista_pos_localizacao
+                for indice, pos in enumerate(img.lista_pos_localizacao):
+                    partida = anda.anda(pos, 'sul', orientacao, img, 'F', arq.diretorio)
+                    img.lista_pos_localizacao[indice] = partida
+                print img.lista_pos_localizacao
+                    
+        
+        print '\nSua posição é:', img.lista_pos_localizacao
+        # Salva imagem do escaneamento
+        #img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+        #anda.contaImg = anda.contaImg + 1
+        anda.comando = 'SAIR'
    
    
-   
+class Mapeia():
+    def realizaMapeamento(self, arq, img, anda, sensor, partida):
+        arq.obtemTamanhoMatriz()
+        img = Image(arq.numColunas, arq.numLinhas)
+        #Salva previa do mapa vazio
+        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+        anda.contaImg = anda.contaImg + 1
+        print anda.comando
+        #verifica qual orientação
+        anda.frente = orientacao.descobreOrientacao(anda.frente, anda.comando)
+        # Copia mapa teorico para matrizMapeada para não dar erro de verificação de matriz nula quando compara em percorre angulos
+        arq.matrizMapeada = arq.matriz
+        # Escaneia e salva estado inicial com primeiro mapemento
+        sensor.percorreAngulos(partida, anda.frente, img, arq)
+        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+        anda.contaImg = anda.contaImg + 1
+        
+        # Inicia mapeamento automatico
+        anda.comando = auto.auto(partida, orientacao, img, sensor, anda, arq)
+        # Salava mapa com numeros de identificação
+        img.salvaMapeado(arq.diretorioMapeado, img.data, arq.ultimaPos)
+        
+        print '\nMapeamento realizado com sucesso!\n'
+            
+      #def criaParticulas():
+          
    
    
    
@@ -633,11 +776,12 @@ if __name__ == "__main__":
     mapeamentoDoRobo = []
     lista_direcoes_atualizada = []
     original = True
-    comando = None
     anda = Desloca()
     auto = Automatico()
     arq = Arquivo()
     img = Image(arq.numColunas, arq.numLinhas)
+    encPosPos = EncontraPossiveisPosicoes()
+    mapeia = Mapeia()
 
     #cria diretorios caso não existam
     if not os.path.exists('mapeado'):
@@ -646,13 +790,8 @@ if __name__ == "__main__":
         os.mkdir('Imagens mapeamento')
         
         
-        
-        
-        
-        
-        
-    while comando != 'SAIR':
-        # Esta parte é executada quando jé existe um mapa do local
+    while anda.comando != 'SAIR':
+        # Esta parte é executada quando já existe um mapa do local
         if os.path.exists(arq.diretorioMapeado) and len(open(arq.diretorioMapeado, 'r').readlines()) > 2:
             print 'Já existe um mapa cadastrado'
             arq.leArquivoMapeado()
@@ -678,161 +817,15 @@ if __name__ == "__main__":
                 mapeamentoDoRobo = sensor.distanciasOriginal
                 original = False
             
-            # 2 loops para percorrer todas posições que forem igual a 3 e 4
-            for y in range(arq.numLinhas):
-                for x in range(arq.numColunas):
-                    print 'Valor da posição=', arq.matrizMapeada[y][x]
-                    
-                    # Se a posição for igual 3 ou 4 mapeia em todas direções e compara com valores recebidos do robô
-                    if arq.matrizMapeada[y][x] == 3 or arq.matrizMapeada[y][x] == 4:
-                        for direcao in direcoes:
-                            print direcao.upper()
-                            sensor.percorreAngulos([y,x], direcao, img, arq)
-                            print sensor.distanciasOriginal
-                            print sensor.distanciasMapeadas
-                            
-                            # Se valores de mapeamento forem igual a do robô é uma possivel posição identificada com numero 5
-                            if all(map(operator.eq, sensor.distanciasOriginal, sensor.distanciasMapeadas)):
-                                img.salvaValor(y,x,5)
-                                img.lista_direcoes.append(direcao)
-                                img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                                anda.contaImg = anda.contaImg + 1
-                            else:
-                                print 'Não são compativeis'
-                    else:
-                        print 'Não é possivel estar aqui. Possivel parede!'
-            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-            anda.contaImg = anda.contaImg + 1
-            print '\n',img.lista_pos_localizacao
-            print img.lista_direcoes,'\n'
-
-
+            #percorre todas posições que forem igual a 3 e 4 e compativel com as distancias obtidas depois salva 
+            encPosPos.verificaTodasPosicoes(arq, direcoes, sensor, img, anda)
 
             # Esta parte é responsável por eliminar todas possiveis posições deixando apenas 1
-            cont = 0    #Contador indicando as direções para o robo virar N, L, S, O
-            nort = 0    
-            comand = 'F'      
-            while len(img.lista_pos_localizacao) > 1:
-                # Gira 360º mapeando cada direção para tentar achar sua localização
-                while cont < 4 and len(img.lista_pos_localizacao) > 1:
-                    # Limpa a lista de escaneamento
-                    img.lista_compara_distancias = []
-                    sensor.distanciasOriginal = [0,0,0,0,0] 
-                    
-                    print mapeamentoDoRobo
-
-                    print '\n',direcoes[cont],'\n'
-                    
-                    #Gira todos para direita e compara com a leitura feita pelo robo
-                    contPos = 0     #Contador da posição dentro da lista de direções
-                    for posicao in img.lista_pos_localizacao:
-                        partida = anda.anda(posicao, img.lista_direcoes[contPos], orientacao, img, 'D', arq.diretorio)
-                        contPos = contPos + 1
-                        lista_direcoes_atualizada.append(anda.frente)
-                        print img.lista_direcoes
-                        print lista_direcoes_atualizada
-                    
-                    contPos = 0     #Contador da posição dentro da lista de direções ZERADO
-                    #Para cada posição realiza um loop de escanemento e comparação
-                    for posicao in img.lista_pos_localizacao:
-                        y,x = posicao
-                        sensor.percorreAngulos([y,x], lista_direcoes_atualizada[contPos], img, arq)
-                        #Variavel recebe valores esaneados para não dar erro de receber o mesmo valor
-                        sensor.distanciasOriginal[0] = sensor.distanciasMapeadas[0]
-                        sensor.distanciasOriginal[1] = sensor.distanciasMapeadas[1]
-                        sensor.distanciasOriginal[2] = sensor.distanciasMapeadas[2]
-                        sensor.distanciasOriginal[3] = sensor.distanciasMapeadas[3]
-                        sensor.distanciasOriginal[4] = sensor.distanciasMapeadas[4]
-                        # Inclui na lista de escaneamentos as posições encontradas e logo depois zera a variavel para liberar para proxima
-                        img.lista_compara_distancias.append(sensor.distanciasOriginal)
-                        sensor.distanciasOriginal = [0,0,0,0,0]
-                        # Salva imagem do escaneamento
-
-                    img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                    anda.contaImg = anda.contaImg + 1
-                    cont = cont + 1   # Muda a direção
-                    excluir = []
-                    print img.lista_compara_distancias
-                    for num in range(len(img.lista_compara_distancias)):
-                        if all(map(operator.eq, img.lista_compara_distancias[0], img.lista_compara_distancias[num])) and len(img.lista_compara_distancias) > 1:
-                            print 'continua'
-                        else:
-                            excluir.append(num)
-                    for i in reversed(excluir):
-                        del img.lista_compara_distancias[i]
-                        del img.lista_pos_localizacao[i]
-                        del img.lista_direcoes[i]
-                    img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                    anda.contaImg = anda.contaImg + 1
-                        
-                cont = 0
-                # Se Mesmo girando 360º Graus não sobrou apenas uma posição começa a andar e escanear
-                # Anda para o norte até encontrar parede e escaneia posição por posição até a parede ao sul
-                if sensor.distanciasMapeadas[4] != 0 and nort != 1 and len(img.lista_pos_localizacao) > 1:
-                    print img.lista_pos_localizacao
-                    for indice, pos in enumerate(img.lista_pos_localizacao):
-                        partida = anda.anda(pos, 'norte', orientacao, img, 'F', arq.diretorio)
-                        img.lista_pos_localizacao[indice] = partida
-                    print img.lista_pos_localizacao
-                
-                elif sensor.distanciasMapeadas[4] == 0 and len(img.lista_pos_localizacao) > 1:
-                    nort = 1
-                    print img.lista_pos_localizacao
-                    for indice, pos in enumerate(img.lista_pos_localizacao):
-                        partida = anda.anda(pos, 'sul', orientacao, img, 'F', arq.diretorio)
-                        img.lista_pos_localizacao[indice] = partida
-                    print img.lista_pos_localizacao
-                
-                elif sensor.distanciasMapeadas[0] != 0 and nort == 1 and len(img.lista_pos_localizacao) > 1:
-                    print img.lista_pos_localizacao
-                    for indice, pos in enumerate(img.lista_pos_localizacao):
-                        partida = anda.anda(pos, 'sul', orientacao, img, 'F', arq.diretorio)
-                        img.lista_pos_localizacao[indice] = partida
-                    print img.lista_pos_localizacao
-                        
-            
-            print '\nSua posição é:', img.lista_pos_localizacao
-            # Salva imagem do escaneamento
-            #img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-            #anda.contaImg = anda.contaImg + 1
-            comando = 'SAIR'
+            encPosPos.eliminaPosicoesDoVetor(arq, direcoes, sensor, img, anda)           
            
-           
-           
-           
-        # Caso não tenha mapeado o local ainda ESTA PARTE É EXECUTADA
+        # Caso não tenha mapeado o local ainda
         else:
-            print 'Arquivo não encontrado ou não atende aos parâmetros de mapa esperados!'
-            #print 'Deseja realizar o mapeamento?'
-            #comando = raw_input('Digite Sim [S] Não [N] ou SAIR:')
-            #comando = comando.upper()
-            #if comando == 'S':
-            arq.obtemTamanhoMatriz()
-            img = Image(arq.numColunas, arq.numLinhas)
-            #Salva previa do mapa vazio
-            img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
-            anda.contaImg = anda.contaImg + 1
-            #verifica qual orientação
-            anda.frente = orientacao.descobreOrientacao(anda.frente, comando)
-            # Copia mapa teorico para matrizMapeada para não dar erro de verificação de matriz nula quando compara em percorre angulos
-            arq.matrizMapeada = arq.matriz
-            # Escaneia e salva estado inicial com primeiro mapemento
-            sensor.percorreAngulos(partida, anda.frente, img, arq)
-            img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
-            anda.contaImg = anda.contaImg + 1
-            
-            # Inicia mapeamento automatico
-            comando = auto.auto(partida, orientacao, img, sensor, anda, arq)
-            # Salava mapa com numeros de identificação
-            img.salvaMapeado(arq.diretorioMapeado, img.data, arq.ultimaPos)
-            
-            print '\nMapeamento realizado com sucesso!\n'
-                
-            #elif comando == 'N' or comando == 'SAIR':
-                #print 'OK Bye!'
-                #comando = 'SAIR'
-            #else:
-                #print 'Comando não conhecido!'
+            mapeia.realizaMapeamento(arq, img, anda, sensor, partida)
 
     #Salva os passos em um txt
     #anda.salvaPassos('Comandos utilizados.txt')
@@ -841,4 +834,4 @@ if __name__ == "__main__":
     for i in range(len(anda.listaComandos)):
         print anda.listaComandos[i]
         
-    comando = 'SAIR'
+    anda.comando = 'SAIR'
