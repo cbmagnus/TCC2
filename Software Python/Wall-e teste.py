@@ -803,36 +803,36 @@ if __name__ == "__main__":
         # Caso não tenha mapeado o local ainda ESTA PARTE É EXECUTADA
         else:
             print 'Arquivo não encontrado ou não atende aos parâmetros de mapa esperados!'
-            print 'Deseja realizar o mapeamento?'
-            comando = raw_input('Digite Sim [S] Não [N] ou SAIR:')
-            comando = comando.upper()
-            if comando == 'S':
-                arq.obtemTamanhoMatriz()
-                img = Image(arq.numColunas, arq.numLinhas)
-                #Salva previa do mapa vazio
-                img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
-                anda.contaImg = anda.contaImg + 1
-                #verifica qual orientação
-                anda.frente = orientacao.descobreOrientacao(anda.frente, comando)
-                # Copia mapa teorico para matrizMapeada para não dar erro de verificação de matriz nula quando compara em percorre angulos
-                arq.matrizMapeada = arq.matriz
-                # Escaneia e salva estado inicial com primeiro mapemento
-                sensor.percorreAngulos(partida, anda.frente, img, arq)
-                img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
-                anda.contaImg = anda.contaImg + 1
+            #print 'Deseja realizar o mapeamento?'
+            #comando = raw_input('Digite Sim [S] Não [N] ou SAIR:')
+            #comando = comando.upper()
+            #if comando == 'S':
+            arq.obtemTamanhoMatriz()
+            img = Image(arq.numColunas, arq.numLinhas)
+            #Salva previa do mapa vazio
+            img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+            anda.contaImg = anda.contaImg + 1
+            #verifica qual orientação
+            anda.frente = orientacao.descobreOrientacao(anda.frente, comando)
+            # Copia mapa teorico para matrizMapeada para não dar erro de verificação de matriz nula quando compara em percorre angulos
+            arq.matrizMapeada = arq.matriz
+            # Escaneia e salva estado inicial com primeiro mapemento
+            sensor.percorreAngulos(partida, anda.frente, img, arq)
+            img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+            anda.contaImg = anda.contaImg + 1
+            
+            # Inicia mapeamento automatico
+            comando = auto.auto(partida, orientacao, img, sensor, anda, arq)
+            # Salava mapa com numeros de identificação
+            img.salvaMapeado(arq.diretorioMapeado, img.data, arq.ultimaPos)
+            
+            print '\nMapeamento realizado com sucesso!\n'
                 
-                # Inicia mapeamento automatico
-                comando = auto.auto(partida, orientacao, img, sensor, anda, arq)
-                # Salava mapa com numeros de identificação
-                img.salvaMapeado(arq.diretorioMapeado, img.data, arq.ultimaPos)
-                
-                print '\nMapeamento realizado com sucesso!\n'
-                
-            elif comando == 'N' or comando == 'SAIR':
-                print 'OK Bye!'
-                comando = 'SAIR'
-            else:
-                print 'Comando não conhecido!'
+            #elif comando == 'N' or comando == 'SAIR':
+                #print 'OK Bye!'
+                #comando = 'SAIR'
+            #else:
+                #print 'Comando não conhecido!'
 
     #Salva os passos em um txt
     #anda.salvaPassos('Comandos utilizados.txt')
