@@ -4,6 +4,7 @@ Created on Tue Mar 22 11:37:49 2016
 
 @author: Darlan.Magnus
 """
+
 import os.path
 import operator
 
@@ -19,6 +20,7 @@ class Image ():
         self.lista_pos_localizacao = []
         self.lista_direcoes = []
         self.lista_compara_distancias = []
+        self.listaParticulasCriadas = []
 
     # Salva matriz com valores do ultimo mapeamento feito e ultimo posicionamento
     def salvaMapeado(self, filename, matriz, ultimaPos):
@@ -32,26 +34,33 @@ class Image ():
     # Salva arquivo com as configurações ppm
     def save(self, filename):
 
+        #Força a sobreposição de cores da matriz 
         for i in range(len(self.lista_pos_localizacao)):
             y,x =  self.lista_pos_localizacao[i]
             self.data[y][x] = 5
+        #Força a sobreposição de cores da matriz  
+        for i in range(len(self.listaParticulasCriadas)):
+            y,x =  self.listaParticulasCriadas[i]
+            self.data[y][x] = 6
         
         with open(filename,'w') as f:
             f.write("P3\n%d %d\n%d\n"%(self.coluna, self.linha, self.maxvalue))
             for lin in self.data:
                 for coluna in lin:
                     if coluna == 0:
-                        f.write("%d %d %d\n" % (20,20,20))      #Pinta de preto
+                        f.write("%d %d %d\n" % (20,20,20))      #Pinta de preto     (Area desconhecida)
                     elif coluna == 2:
-                        f.write("%d %d %d\n" % (220,220,220))   #Pinta de Branco
+                        f.write("%d %d %d\n" % (220,220,220))   #Pinta de Branco    (Parede)
                     elif coluna == 3:
-                        f.write("%d %d %d\n" % (220,220,0))     #Pinta de Amarelo
+                        f.write("%d %d %d\n" % (220,220,0))     #Pinta de Amarelo   (Area já mapeada)
                     elif coluna == 4:
-                        f.write("%d %d %d\n" % (0,0,220))       #Pinta de Azul
+                        f.write("%d %d %d\n" % (0,0,220))       #Pinta de Azul      (Lugares onde robo passou)
                     elif coluna == 1:
-                        f.write("%d %d %d\n" % (0,220,0))       #Pinta de Verde
+                        f.write("%d %d %d\n" % (0,220,0))       #Pinta de Verde     (Lugares livres escaneados)
                     elif coluna == 5:
-                        f.write("%d %d %d\n" % (220,0,0))       #Pinta de Vermelho
+                        f.write("%d %d %d\n" % (220,0,0))       #Pinta de Vermelho  (Possiveis posições)
+                    elif coluna == 6:
+                        f.write("%d %d %d\n" % (200,115,60))       #Pinta de Laranja  (Posições das particulas)
                     else:
                         print 'numero desconhecido dentro do mapa'
 
@@ -74,7 +83,7 @@ class Image ():
         elif self.data[y][x] == 4:
             self.listaPosicoes.append([y,x])
         
-        elif self.data[y][x] == 5:
+        elif self.data[y][x] == 5 or self.data[y][x] == 6:
             self.lista_pos_localizacao.append([y,x])
 
             
@@ -85,23 +94,22 @@ class Arquivo():
         self.numColunas = 0
         self.matriz = None
         self.diretorio = 'Imagens mapeamento/Mapa Walle'
-        self.diretorioMapeado = 'mapeado/MapaMapeado.txt'
         self.diretorio_img_posicoes = 'mapeado/MapaMapeado.txt'
-        self.mapaTerico = 'mapa01.txt'
+        self.mapaTeorico = 'mapa01.txt'
         self.matrizMapeada = None
         self.ultimaPos = None
         self.cont = 0
         
     def obtemTamanhoMatriz(self):           #cria uma matriz com os valores lidos do txt
-        arquivo = open(self.mapaTerico, 'r')
+        arquivo = open(self.mapaTeorico, 'r')
         linha = arquivo.readline()
         arquivo.close()
-        arquivo = open(self.mapaTerico, 'r')
+        arquivo = open(self.mapaTeorico, 'r')
         coluna = arquivo.readlines()
         arquivo.close()
         self.numColunas = len(linha)-1
         self.numLinhas = len(coluna)
-        arquivo = open(self.mapaTerico, 'r')
+        arquivo = open(self.mapaTeorico, 'r')
         linha = arquivo.readline()
         
         if self.numLinhas > self.numColunas:
@@ -125,11 +133,11 @@ class Arquivo():
                 arquivo.close()
  
     def leArquivoMapeado(self):
-        arquivo = open(self.diretorioMapeado, 'r')
+        arquivo = open(self.diretorio_img_posicoes, 'r')
         arquivo.readline()
         linha = arquivo.readline()
         arquivo.close()
-        arquivo = open(self.diretorioMapeado, 'r')
+        arquivo = open(self.diretorio_img_posicoes, 'r')
         coluna = arquivo.readlines()
         arquivo.close()
         self.numColunas = len(linha)-1
@@ -146,7 +154,7 @@ class Arquivo():
         for i in range(self.numLinhas):
             self.matrizMapeada[i] = [0]*self.numColunas
             
-        arquivo = open(self.diretorioMapeado, 'r')
+        arquivo = open(self.diretorio_img_posicoes, 'r')
         self.ultimaPos = arquivo.readline()
         linha = arquivo.readline()
         for y in range(self.numLinhas):
@@ -381,7 +389,6 @@ class Orientacao():
 
 class Desloca():
     def __init__(self):
-        #self.diretorio = 'Imagens mapeamento/Mapa Walle'
         self.listaComandos = []
         self.destino = [0,0]
         self.contaImg = 0
@@ -650,12 +657,13 @@ class EncontraPossiveisPosicoes():
                 sensor.distanciasOriginal = [0,0,0,0,0] 
                 
                 print mapeamentoDoRobo
-
+                print img.lista_pos_localizacao
                 print '\n',direcoes[cont],'\n'
                 
                 #Gira todos para direita e compara com a leitura feita pelo robo
                 contPos = 0     #Contador da posição dentro da lista de direções
                 for posicao in img.lista_pos_localizacao:
+                    print posicao
                     partida = anda.anda(posicao, img.lista_direcoes[contPos], orientacao, img, 'D', arq.diretorio)
                     contPos = contPos + 1
                     lista_direcoes_atualizada.append(anda.frente)
@@ -748,14 +756,49 @@ class Mapeia():
         # Inicia mapeamento automatico
         anda.comando = auto.auto(partida, orientacao, img, sensor, anda, arq)
         # Salava mapa com numeros de identificação
-        img.salvaMapeado(arq.diretorioMapeado, img.data, arq.ultimaPos)
-        
+        img.salvaMapeado(arq.diretorio_img_posicoes, img.data, arq.ultimaPos)
         print '\nMapeamento realizado com sucesso!\n'
+
             
-      #def criaParticulas():
-          
-   
-   
+    def criaParticulas(self, img, arq, anda):
+        #Cria particulas em torno de cada posição encontrada
+        for pos in img.lista_pos_localizacao:
+            y,x = pos
+            if img.data[y-1][x] != 2:
+                var = [(y-1),x]
+                img.listaParticulasCriadas.append(var)
+            if img.data[y+1][x] != 2:
+                var = [(y+1),x]
+                img.listaParticulasCriadas.append(var)
+            if img.data[y][x-1] != 2:
+                var = [y,(x-1)]
+                img.listaParticulasCriadas.append(var)
+            if img.data[y][x+1] != 2:
+                var = [y,(x+1)]
+                img.listaParticulasCriadas.append(var)
+            if img.data[y-1][x-1] != 2:
+                var = [(y-1),(x-1)]
+                img.listaParticulasCriadas.append(var)
+            if img.data[y+1][x+1] != 2:
+                var = [(y+1),(x+1)]
+                img.listaParticulasCriadas.append(var)
+            if img.data[y-1][x+1] != 2:
+                var = [(y-1),(x+1)]
+                img.listaParticulasCriadas.append(var)
+            if img.data[y+1][x-1] != 2:
+                var = [(y+1),(x-1)]
+                img.listaParticulasCriadas.append(var)
+                
+        #Salva o valor 6 na matriz e já insere na lista de possiveis posições
+        for pos in img.listaParticulasCriadas:
+            y,x = pos
+            img.salvaValor(y,x,6)                
+        
+        print img.data
+        print arq.matrizMapeada
+        print arq.matriz
+        img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+        anda.contaImg = anda.contaImg + 1
    
    
    
@@ -776,6 +819,7 @@ if __name__ == "__main__":
     mapeamentoDoRobo = []
     lista_direcoes_atualizada = []
     original = True
+    posicaoRobo = []
     anda = Desloca()
     auto = Automatico()
     arq = Arquivo()
@@ -792,7 +836,7 @@ if __name__ == "__main__":
         
     while anda.comando != 'SAIR':
         # Esta parte é executada quando já existe um mapa do local
-        if os.path.exists(arq.diretorioMapeado) and len(open(arq.diretorioMapeado, 'r').readlines()) > 2:
+        if os.path.exists(arq.diretorio_img_posicoes) and len(open(arq.diretorio_img_posicoes, 'r').readlines()) > 2:
             print 'Já existe um mapa cadastrado'
             arq.leArquivoMapeado()
             img = Image(arq.numColunas, arq.numLinhas)
@@ -810,18 +854,22 @@ if __name__ == "__main__":
             sensor.distanciasOriginal[2] = sensor.distanciasMapeadas[2]
             sensor.distanciasOriginal[3] = sensor.distanciasMapeadas[3]
             sensor.distanciasOriginal[4] = sensor.distanciasMapeadas[4]
-            print sensor.distanciasOriginal
+            #print sensor.distanciasOriginal
             
             #Guarda o escanemanto feito pelo robo e não as particulas simuladas
             if original is True:
                 mapeamentoDoRobo = sensor.distanciasOriginal
+                posicaoRobo = partida
                 original = False
-            
+            print mapeamentoDoRobo
+            print posicaoRobo
             #percorre todas posições que forem igual a 3 e 4 e compativel com as distancias obtidas depois salva 
             encPosPos.verificaTodasPosicoes(arq, direcoes, sensor, img, anda)
-
+            #Cri particulas em torno de cada possivel possição encontrada
+            mapeia.criaParticulas(img, arq, anda)
             # Esta parte é responsável por eliminar todas possiveis posições deixando apenas 1
             encPosPos.eliminaPosicoesDoVetor(arq, direcoes, sensor, img, anda)           
+           
            
         # Caso não tenha mapeado o local ainda
         else:

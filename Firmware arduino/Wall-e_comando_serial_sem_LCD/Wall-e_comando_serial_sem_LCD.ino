@@ -11,7 +11,7 @@ void sonar();
 int distancia;
 int distSegura = 20;
 char comando = '0';
-int tempo = 500;
+int tempo = 1000;
 
 // INFRA VERMELHO
 int infraFrente = 0;        //analogico 0
