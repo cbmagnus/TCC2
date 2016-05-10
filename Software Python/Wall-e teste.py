@@ -659,7 +659,7 @@ class EncontraPossiveisPosicoes():
         print mapeamentoDoRobo
         print img.lista_pos_localizacao
         
-        #Gira todos para direita e compara com a leitura feita pelo robo
+        #Gira todos 360º e compara com a leitura feita pelo robo
         for posicao in img.lista_pos_localizacao:
             for direc in direcoes:
                 print posicao
@@ -777,6 +777,7 @@ class Mapeia():
    
 if __name__ == "__main__":
     partida = [14,14]     #(linha, coluna)
+    direcaoRobo = 'norte'
     sensor = Sensor()
     direcoes = ['norte', 'leste', 'sul', 'oeste']
     orientacao = Orientacao()
@@ -812,7 +813,7 @@ if __name__ == "__main__":
 
             while anda.comando != 'SAIR':
                 #Inicia o escaneamento do robo real
-                sensor.percorreAngulos(partida, anda.frente, img, arq)
+                sensor.percorreAngulos(partida, direcaoRobo, img, arq)
                 sensor.distanciasOriginal[0] = sensor.distanciasMapeadas[0]
                 sensor.distanciasOriginal[1] = sensor.distanciasMapeadas[1]
                 sensor.distanciasOriginal[2] = sensor.distanciasMapeadas[2]
@@ -822,7 +823,7 @@ if __name__ == "__main__":
                 print mapeamentoDoRobo
                 
                 if primVez == 0:
-                    #percorre todas posições que forem igual a 3 e 4 e compativel com as distancias obtidas depois salva 
+                    #percorre todas posições e em todas as direções que forem igual a 3 e 4 e compativel com as distancias obtidas pelo robo depois salva 
                     encPosPos.verificaTodasPosicoes(arq, direcoes, sensor, img, anda)
                     primVez = primVez + 1
                 else:
@@ -835,20 +836,23 @@ if __name__ == "__main__":
                     
                     print '------------------------------------------------------'
                     print cont
-                    print anda.frente
+                    print direcaoRobo
                     print img.lista_pos_localizacao
+                    print img.lista_direcoes
                     print mapeamentoDoRobo
                     
                     # Se já tiver virado 360º e ainda tiver mais de 1 possível posição
                     if cont >= 4 and primVez == 1:
                         listaLocalTemporaria = []
                         listaDirecaoTemporaria = []
-                        # Se der pra andar pra frente vai e volta até a parede 
                         if mapeamentoDoRobo[2] != 0:
-                            #partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                            #Anda robo para frente e na sequencia todas particulas tmbm
+                            partida = anda.anda(partida, direcaoRobo, orientacao, img, 'F', arq.diretorio)
+                            direcaoRobo = anda.frente
                             for indice, pos in enumerate(img.lista_pos_localizacao):
-                                partida = anda.anda(pos, img.lista_direcoes[indice], orientacao, img, 'F', arq.diretorio)
-                                listaLocalTemporaria.append(partida)
+                                temp = anda.anda(pos, img.lista_direcoes[indice], orientacao, img, 'F', arq.diretorio)
+                                print temp
+                                listaLocalTemporaria.append(temp)
                             print img.lista_pos_localizacao
                             img.lista_pos_localizacao = listaLocalTemporaria
                             print img.lista_pos_localizacao
@@ -858,10 +862,13 @@ if __name__ == "__main__":
                         
                         # Se tiver parede a frente vira para o lado contrário
                         elif mapeamentoDoRobo[2] == 0:
-                            #Vira todas as particulas na posição contrária
+                            #Viro o robo para a direita e na sequencia todas particulas tmbm
+                            partida = anda.anda(partida, direcaoRobo, orientacao, img, 'D', arq.diretorio)
+                            direcaoRobo = anda.frente
                             for indice, pos in enumerate(img.lista_pos_localizacao):
-                                partida = anda.anda(pos, img.lista_direcoes[indice], orientacao, img, 'D', arq.diretorio)
-                                listaLocalTemporaria.append(partida)
+                                temp = anda.anda(pos, img.lista_direcoes[indice], orientacao, img, 'D', arq.diretorio)
+                                print temp
+                                listaLocalTemporaria.append(temp)
                                 listaDirecaoTemporaria.append(anda.frente)
                             img.lista_pos_localizacao = listaLocalTemporaria
                             img.lista_direcoes = listaDirecaoTemporaria
@@ -874,6 +881,7 @@ if __name__ == "__main__":
                 if cont < 4:
                     #Vira para direita para compatibilizar com particulas
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+                    direcaoRobo = anda.frente
                     cont = cont + 1
            
            
