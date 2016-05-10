@@ -676,6 +676,7 @@ class EncontraPossiveisPosicoes():
                     print 'NÃO são compativeis'
             print 'Fim da posição -> ', posicao
             print listaPosicoesTEMP
+            print img.lista_direcoes
             
         img.listaParticulasCriadas = []
         #Pinta mapa com as cores restantes no caso apenas possiveis posições
@@ -775,7 +776,7 @@ class Mapeia():
    
    
 if __name__ == "__main__":
-    partida = [11,15]     #(linha, coluna)
+    partida = [14,14]     #(linha, coluna)
     sensor = Sensor()
     direcoes = ['norte', 'leste', 'sul', 'oeste']
     orientacao = Orientacao()
@@ -788,7 +789,6 @@ if __name__ == "__main__":
     mapeia = Mapeia()
     primVez = 0
     cont = 0
-    numeroDePosicoesAndados = 0
 
     #cria diretorios caso não existam
     if not os.path.exists('mapeado'):
@@ -839,108 +839,33 @@ if __name__ == "__main__":
                     print img.lista_pos_localizacao
                     print mapeamentoDoRobo
                     
-                    # Se já tiver virado 360º e ainda tiver mais de 1 possível posição anda para o lado que tiver a maior distancia
+                    # Se já tiver virado 360º e ainda tiver mais de 1 possível posição
                     if cont >= 4 and primVez == 1:
                         listaLocalTemporaria = []
-                        # Se der pra andar pra frente vai e volta até a parede a baixo se ainda não der vira para olado maior
-                        if mapeamentoDoRobo[2] != 0 and anda.frente == 'norte':
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                            numeroDePosicoesAndados = numeroDePosicoesAndados + 1
-                            for pos in img.lista_pos_localizacao:
-                                y,x = pos
-                                part = [(y-1),x]
-                                listaLocalTemporaria.append(part)
+                        listaDirecaoTemporaria = []
+                        # Se der pra andar pra frente vai e volta até a parede 
+                        if mapeamentoDoRobo[2] != 0:
+                            #partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                            for indice, pos in enumerate(img.lista_pos_localizacao):
+                                partida = anda.anda(pos, img.lista_direcoes[indice], orientacao, img, 'F', arq.diretorio)
+                                listaLocalTemporaria.append(partida)
                             print img.lista_pos_localizacao
                             img.lista_pos_localizacao = listaLocalTemporaria
                             print img.lista_pos_localizacao
+                            print img.lista_direcoes
                             img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
                             anda.contaImg = anda.contaImg + 1
                         
-                        # Se tiver parede a frente vira para o SUL
-                        elif mapeamentoDoRobo[2] == 0 and anda.frente == 'norte':
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                            for posAndados in range(numeroDePosicoesAndados):
-                                partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                            numeroDePosicoesAndados = 0
-                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                            anda.contaImg = anda.contaImg + 1
-                        
-                        elif mapeamentoDoRobo[2] != 0 and anda.frente == 'sul':
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                            for pos in img.lista_pos_localizacao:
-                                y,x = pos
-                                part = [(y+1),x]
-                                listaLocalTemporaria.append(part)
+                        # Se tiver parede a frente vira para o lado contrário
+                        elif mapeamentoDoRobo[2] == 0:
+                            #Vira todas as particulas na posição contrária
+                            for indice, pos in enumerate(img.lista_pos_localizacao):
+                                partida = anda.anda(pos, img.lista_direcoes[indice], orientacao, img, 'D', arq.diretorio)
+                                listaLocalTemporaria.append(partida)
+                                listaDirecaoTemporaria.append(anda.frente)
                             img.lista_pos_localizacao = listaLocalTemporaria
-                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                            anda.contaImg = anda.contaImg + 1
-                        
-                        # Se tiver parede ao SUL e ainda não encontrou a posição correta vira para o lado com maior distancia
-                        elif mapeamentoDoRobo[2] == 0 and anda.frente == 'sul':
-                            # Se tiver mais espaço a direita do mapa e esquerda do robo viro para esquerda e ando uma posição a direita "em relação o mapa" com todas particulas
-                            if mapeamentoDoRobo[0] > mapeamentoDoRobo[4]:
-                                partida = anda.anda(partida, anda.frente, orientacao, img, 'E', arq.diretorio)
-                                partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                                for pos in img.lista_pos_localizacao:
-                                    y,x = pos
-                                    part = [y,(x+1)]
-                                    listaLocalTemporaria.append(part)
-                                img.lista_pos_localizacao = listaLocalTemporaria
-                                img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                                anda.contaImg = anda.contaImg + 1
-                            else:
-                                partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                                partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                                for pos in img.lista_pos_localizacao:
-                                    y,x = pos
-                                    part = [y,(x-1)]
-                                    listaLocalTemporaria.append(part)
-                                img.lista_pos_localizacao = listaLocalTemporaria
-                                img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                                anda.contaImg = anda.contaImg + 1
-                        
-                        
-                        elif mapeamentoDoRobo[2] != 0 and anda.frente == 'leste':
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                            numeroDePosicoesAndados = numeroDePosicoesAndados + 1
-                            for pos in img.lista_pos_localizacao:
-                                y,x = pos
-                                part = [y,(x+1)]
-                                listaLocalTemporaria.append(part)
-                            img.lista_pos_localizacao = listaLocalTemporaria
-                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                            anda.contaImg = anda.contaImg + 1
-                        elif mapeamentoDoRobo[2] == 0 and anda.frente == 'leste':
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                            # Se ainda não encontrou diferença retorna para ultima posição e anda para o lado contrário
-                            for posAndados in range(numeroDePosicoesAndados):
-                                partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                            numeroDePosicoesAndados = 0
-                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                            anda.contaImg = anda.contaImg + 1
-                        
-                        elif mapeamentoDoRobo[2] != 0 and anda.frente == 'oeste':
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                            numeroDePosicoesAndados = numeroDePosicoesAndados + 1
-                            for pos in img.lista_pos_localizacao:
-                                y,x = pos
-                                part = [y,(x+1)]
-                                listaLocalTemporaria.append(part)
-                            img.lista_pos_localizacao = listaLocalTemporaria
-                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                            anda.contaImg = anda.contaImg + 1
-
-                        elif mapeamentoDoRobo[2] == 0 and anda.frente == 'oeste':
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                            partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                            # Se ainda não encontrou diferença retorna para ultima posição e anda para o lado contrário
-                            for posAndados in range(numeroDePosicoesAndados):
-                                partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                            numeroDePosicoesAndados = 0
-                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
-                            anda.contaImg = anda.contaImg + 1
+                            img.lista_direcoes = listaDirecaoTemporaria
+                            
                             
                     
                 #Cri particulas em torno de cada possivel possição encontrada
