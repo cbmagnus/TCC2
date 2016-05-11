@@ -1,10 +1,10 @@
 int velMax = 255;
 int velMin = 0;
 
-int IN1 = 3;
+int IN1 = 4;
 int IN2 = 5;
 int IN3 = 6;
-int IN4 = 9;
+int IN4 = 7;
   
 #define PIN_DO 8
 volatile unsigned int pulses;
@@ -29,10 +29,10 @@ void setup(){
 }
  
 void loop(){
-  digitalWrite(IN1, velMax);
-  digitalWrite(IN2, velMin);
-  digitalWrite(IN3, velMax);
-  digitalWrite(IN4, velMin);
+  analogWrite(IN1, velMin);
+  analogWrite(IN2, velMax);
+  analogWrite(IN3, velMax);
+  analogWrite(IN4, velMin);
   if (millis() - timeOld >= 1000){
     detachInterrupt(digitalPinToInterrupt(PIN_DO));
     rpm = (pulses * 60) / (HOLES_DISC);

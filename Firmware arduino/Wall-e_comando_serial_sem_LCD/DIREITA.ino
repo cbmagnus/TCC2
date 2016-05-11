@@ -1,7 +1,7 @@
 void direita(){
-  analogWrite (3, velMax);
-  analogWrite (5, velMin);
-  analogWrite (6, velMin);
-  analogWrite (9, velMin);
+  analogWrite (IN1, velMin);
+  analogWrite (IN2, velMax);
+  analogWrite (IN3, velMin);
+  analogWrite (IN4, velMin);
 }
 

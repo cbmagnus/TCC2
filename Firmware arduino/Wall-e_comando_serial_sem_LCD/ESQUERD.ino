@@ -1,7 +1,7 @@
 void esquerda(){
-  analogWrite (3, velMin);
-  analogWrite (5, velMin);
-  analogWrite (6, velMax);
-  analogWrite (9, velMin);
+  analogWrite (IN1, velMin);
+  analogWrite (IN2, velMin);
+  analogWrite (IN3, velMax);
+  analogWrite (IN4, velMin);
 }
 

@@ -1,7 +1,7 @@
 void re(){
-  analogWrite (3, velMin);
-  analogWrite (5, velMax);
-  analogWrite (6, velMin);
-  analogWrite (9, velMax);
+  analogWrite (IN1, velMax);
+  analogWrite (IN2, velMin);
+  analogWrite (IN3, velMin);
+  analogWrite (IN4, velMax);
 }
 

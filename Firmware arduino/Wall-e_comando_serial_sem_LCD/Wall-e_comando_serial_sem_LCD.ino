@@ -20,6 +20,12 @@ int infraFrente = 0;        //analogico 0
 int velMax = 255;      //entre 0 parado e 255 maximo
 int velMin = 0;
 
+// PINOS DOS MOTORES
+int IN1 = 4;
+int IN2 = 5;
+int IN3 = 6;
+int IN4 = 7;
+
 // POSICIONAMENTO SERVO ENTRE 0 E 180
 int servoCentro = 90;
 int servoDireita = 0;
@@ -44,10 +50,10 @@ void setup() {
   Serial.flush();
   
   // PINOS DOS MOTORES SAIDA
-  pinMode(3, OUTPUT);     // LADO DIREITO 
-  pinMode(5, OUTPUT);     // LADO DIREITO
-  pinMode(6, OUTPUT);     // LADO ESQUERDO
-  pinMode(9, OUTPUT);     // LADO ESQUERDO
+  pinMode(IN1, OUTPUT);     // LADO DIREITO 
+  pinMode(IN2, OUTPUT);     // LADO DIREITO
+  pinMode(IN3, OUTPUT);     // LADO ESQUERDO
+  pinMode(IN4, OUTPUT);     // LADO ESQUERDO
   
   // INICIA PINO SERVO 10 DIGITAL
   servo1.attach(10);      // definido pino 10 digital
