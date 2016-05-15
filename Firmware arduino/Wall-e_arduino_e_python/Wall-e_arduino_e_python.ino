@@ -9,9 +9,9 @@ void sonar();
 
 // DECLARAÇÃO VARIÁVEL GLOBAL
 int distancia;
-int distSegura = 20;
-char comando = '0';
+int distSegura = 5;
 int tempo = 1000;
+String comando = "";
 
 // INFRA VERMELHO
 int infraFrente = 0;        //analogico 0
@@ -27,19 +27,17 @@ int IN3 = 6;
 int IN4 = 7;
 
 // POSICIONAMENTO SERVO ENTRE 0 E 180
-int servoCentro = 90;
-int servoDireita = 0;
-int servoEsquerda = 175;
+int servo0 = 175;
+int servo45 = 125;
+int servo90 = 75;
+int servo135 = 40;
+int servo180 = 0;
 
 // SENSOR ULTRASSONICO
 int trig = 11;          // pino 11 digital
 int echo = 12;          // pino 12 digital
 
-//#include <Wire.h>
-//#include <LCD.h>
-//#include <LiquidCrystal_I2C.h>
 #include <Servo.h>
-
 Servo servo1;         //Criando objeto servo da frente
 
 void setup() {
@@ -54,7 +52,7 @@ void setup() {
   
   // INICIA PINO SERVO 10 DIGITAL
   servo1.attach(10);      // definido pino 10 digital
-  servo1.write(servoCentro);
+  servo1.write(servo90);
   
   //INICIA PINO SONAR
   pinMode(trig,OUTPUT);
@@ -64,44 +62,74 @@ void setup() {
   pinMode(infraFrente, INPUT);
 }
 
+
+
+
 void loop() {
-
-  if (Serial.available()) {
-    comando = Serial.read();
-
-    if(comando == 'F'){
+  if (Serial.available() > 0){
+    // Lê toda string recebida
+    comando = leStringSerial();
+    Serial.println(comando);
+    
+    if(comando == "F"){
       frente();
       delay(tempo);
     }
-
-    else if(comando == 'R'){
+  
+    else if(comando == "R"){
       re();
       delay(tempo);
     }
-
-    else if(comando == 'D'){
+  
+    else if(comando == "D"){
       direita();
       delay(tempo);
     }
-
-    else if(comando == 'E'){
+  
+    else if(comando == "E"){
       esquerda();
       delay(tempo);
     }
-
-    else if(comando == 'P'){
-      pensa();
+  
+    else if(comando == "ANGULO0"){
+      servo1.write(servo0);
+      delay(300);
+      sonar();    // ja me retorna a distancia
+      delay(100);
+    }
+  
+    else if(comando == "ANGULO45"){
+      servo1.write(servo45);
+      delay(300);
+      sonar();
+      delay(100);
+    }
+  
+    else if(comando == "ANGULO90"){
+      servo1.write(servo90);
+      delay(300);
+      sonar();
+      delay(100);
+    }
+  
+    else if(comando == "ANGULO135"){
+      servo1.write(servo135);
+      delay(300);
+      sonar();
+      delay(100);
+    }
+  
+    else if(comando == "ANGULO180"){
+      servo1.write(servo180);
+      delay(300);
+      sonar();
+      delay(100);
     }
 
     else{
+      Serial.println("Comando nao encntrado");
       pare();
     }
-
-    pare();
-    delay(200);
-  }
-  else{
     pare();
   }
-  
 }
