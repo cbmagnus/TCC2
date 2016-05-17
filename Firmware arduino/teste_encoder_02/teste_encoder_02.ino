@@ -6,31 +6,14 @@ int IN2 = 5;
 int IN3 = 6;
 int IN4 = 7;
 
-int encoder_pin = 8;  // The pin the encoder is connected           
-unsigned int rpm;     // rpm reading
-volatile byte pulses;  // number of pulses
-unsigned long timeold; 
-// The number of pulses per revolution
-// depends on your index disc!!
-unsigned int pulsesperturn = 8;
-
-void counter(){
-  //Update count
-  pulses++;
-}
+int encoder_pin = 2;  // The pin the encoder is connected
+int nrFuros = 8;
+int pulsos = 0;
+int anterior = 0;
 
 void setup(){
   Serial.begin(9600);
-  //Use statusPin to flash along with interrupts
   pinMode(encoder_pin, INPUT);
- 
-  //Interrupt 0 is digital pin 2, so that is where the IR detector is connected
-  //Triggers on FALLING (change from HIGH to LOW)
-  attachInterrupt(1, counter, FALLING);
-  // Initialize
-  pulses = 0;
-  rpm = 0;
-  timeold = 0;
 
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
@@ -41,22 +24,28 @@ void setup(){
 void loop(){
   analogWrite(IN1, velMin);
   analogWrite(IN2, velMax);
-  analogWrite(IN3, velMax);
+  analogWrite(IN3, velMin);
   analogWrite(IN4, velMin);
-  if (millis() - timeold >= 1000){  /*Uptade every one second, this will be equal to reading frecuency (Hz).*/
-    //Don't process interrupts during calculations
-    detachInterrupt(1);
-    //Note that this would be 60*1000/(millis() - timeold)*pulses if the interrupt
-    //happened once per revolution
-    rpm = (60 * 1000 / pulsesperturn )/ (millis() - timeold)* pulses;
-    timeold = millis();
-    pulses = 0;
-    
-    //Write it out to serial port
-    Serial.print("RPM = ");
-    Serial.println(rpm,DEC);
-    //Restart the interrupt processing
-    attachInterrupt(1, counter, FALLING);
-    }
+
+  if(digitalRead(encoder_pin) == LOW && anterior == 0){
+    anterior = 1;
+    delay(10);
+  }
+
+  if(digitalRead(encoder_pin) == HIGH && anterior == 1){
+    pulsos = pulsos + 1;
+    Serial.println(pulsos);
+    anterior = 0;
+    delay(10);
+  }
+  
+  if(pulsos == nrFuros){
+    analogWrite(IN1, velMin);
+    analogWrite(IN2, velMin);
+    analogWrite(IN3, velMin);
+    analogWrite(IN4, velMin);
+    pulsos = 0;
+    delay(2000);
+  }
 }
 
