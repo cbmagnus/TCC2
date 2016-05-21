@@ -13,13 +13,15 @@ void encoder(int nrPulsos){
     
     if(digitalRead(encoderDir) == HIGH && anteriorDir == 1){
       pulsosDir = pulsosDir + 1;
-      Serial.println(pulsosDir);
+      //Serial.print("Dir= ");
+      //Serial.println(pulsosDir);
       anteriorDir = 0;
       delay(10);
     }
     if(digitalRead(encoderEsq) == HIGH && anteriorEsq == 1){
       pulsosEsq = pulsosEsq + 1;
-      Serial.println(pulsosEsq);
+      //Serial.print("Esq= ");
+      //Serial.println(pulsosEsq);
       anteriorEsq = 0;
       delay(10);
     }

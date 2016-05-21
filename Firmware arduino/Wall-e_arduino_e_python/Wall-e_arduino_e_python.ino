@@ -9,6 +9,7 @@ void sonar();
 
 // DECLARAÇÃO VARIÁVEL GLOBAL
 int distancia;
+int valor = 0;
 int distSegura = 5;
 String comando = "";
 
@@ -16,7 +17,8 @@ String comando = "";
 int infraFrente = 0;        //analogico 0
 
 // VELOCIDADE DOS MOTORES
-int velMax = 250;      //entre 0 parado e 255 maximo
+int velDir = 250;
+int velEsq = 250;
 int velMin = 0;
 
 // PINOS DOS MOTORES
@@ -41,8 +43,8 @@ int pulsosDir = 0;
 int pulsosEsq = 0;
 int anteriorDir = 0;
 int anteriorEsq = 0;
-int nrPulsosFrente = 4;
-int nrPulsosLado = 8;
+int nrPulsosFrente = 3;
+int nrPulsosLado = 7;
 // NUMERO DE FUROS DO ENCODER
 int nrFuros = 8;
 //PINO LIGADO AO ENCODER
@@ -84,70 +86,61 @@ void loop() {
   if (Serial.available() > 0){
     // Lê toda string recebida
     comando = leStringSerial();
-    Serial.println(comando);
+    //Serial.println(comando);
 
     if(analogRead(infraFrente) < 500){
       pare();
-      Serial.println("Nao tem espaço a frente");
+      //Serial.println("Nao tem espaço a frente");
     }
     
     if(comando == "F"){
       frente(nrPulsosFrente);
-      //delay(tempoFrente);
     }
   
     else if(comando == "R"){
       re(nrPulsosFrente);
-      //delay(tempoFrente);
     }
   
     else if(comando == "D"){
       direita(nrPulsosLado);
-      //delay(tempoLado);
     }
   
     else if(comando == "E"){
       esquerda(nrPulsosLado);
-      //delay(tempoLado);
     }
   
     else if(comando == "ANGULO0"){
       servo1.write(servo0);
-      delay(400);
+      delay(300);
       sonar();    // ja me retorna a distancia
-      delay(100);
     }
   
     else if(comando == "ANGULO45"){
       servo1.write(servo45);
-      delay(400);
+      delay(300);
       sonar();
-      delay(100);
     }
   
     else if(comando == "ANGULO90"){
       servo1.write(servo90);
-      delay(400);
+      delay(300);
       sonar();
-      delay(100);
     }
   
     else if(comando == "ANGULO135"){
       servo1.write(servo135);
-      delay(400);
+      delay(300);
       sonar();
-      delay(100);
     }
   
     else if(comando == "ANGULO180"){
       servo1.write(servo180);
-      delay(400);
+      delay(300);
       sonar();
-      delay(100);
     }
 
     else{
-      Serial.println("Comando nao encntrado");
+      //Serial.println("Comando nao encntrado");
       pare();
     }
     pare();
