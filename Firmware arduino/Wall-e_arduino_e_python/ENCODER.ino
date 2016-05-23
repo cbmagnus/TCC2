@@ -1,5 +1,5 @@
 void encoder(int nrPulsos){
-  while(nrPulsos >= pulsosDir && nrPulsos >= pulsosEsq){
+  while(nrPulsos >= pulsosDir && nrPulsos >= pulsosEsq && analogRead(infraFrente) > 500){
     // Encoder lado direito
     if(digitalRead(encoderDir) == LOW && anteriorDir == 0){
       anteriorDir = 1;
@@ -13,21 +13,23 @@ void encoder(int nrPulsos){
     
     if(digitalRead(encoderDir) == HIGH && anteriorDir == 1){
       pulsosDir = pulsosDir + 1;
-      //Serial.print("Dir= ");
-      //Serial.println(pulsosDir);
       anteriorDir = 0;
       delay(10);
     }
     if(digitalRead(encoderEsq) == HIGH && anteriorEsq == 1){
       pulsosEsq = pulsosEsq + 1;
-      //Serial.print("Esq= ");
-      //Serial.println(pulsosEsq);
       anteriorEsq = 0;
       delay(10);
     }
   }
+
+  if(analogRead(infraFrente) < 500){
+    Serial.println("PAREDE");
+    re(nrPulsosRe);
+    delay(200);
+  }
+  
   pulsosEsq = 0;
   pulsosDir = 0;
-  Serial.flush();
-  delay(100);
+  delay(50);
 }

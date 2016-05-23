@@ -1,4 +1,5 @@
 void verDist(){
+  distancia = 0;
   digitalWrite (trig,LOW);
   delayMicroseconds(2);
   digitalWrite(trig,HIGH);

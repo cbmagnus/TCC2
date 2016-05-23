@@ -1,6 +1,6 @@
 void sonar(){
   valor = 0;
-  for(int i=0; i<5; i++){
+  for(int i=0; i<3; i++){
     verDist();
     if(distancia > 1){
       valor = valor + distancia;
@@ -8,7 +8,8 @@ void sonar(){
       i--;
     }
   }
+  distancia = 0;
   //Serial.println(valor);
-  distancia = (valor / 5);
-  Serial.print(distancia);
+  distancia = (valor / 3);
+  Serial.println(distancia);
 }

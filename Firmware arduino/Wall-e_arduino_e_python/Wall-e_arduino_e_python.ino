@@ -17,7 +17,7 @@ String comando = "";
 int infraFrente = 0;        //analogico 0
 
 // VELOCIDADE DOS MOTORES
-int velDir = 250;
+int velDir = 240;
 int velEsq = 250;
 int velMin = 0;
 
@@ -43,10 +43,11 @@ int pulsosDir = 0;
 int pulsosEsq = 0;
 int anteriorDir = 0;
 int anteriorEsq = 0;
-int nrPulsosFrente = 3;
-int nrPulsosLado = 7;
+int nrPulsosFrente = 7;
+int nrPulsosRe = 2;
+int nrPulsosLado = 15;
 // NUMERO DE FUROS DO ENCODER
-int nrFuros = 8;
+int nrFuros = 16;
 //PINO LIGADO AO ENCODER
 int encoderDir = 2;
 int encoderEsq = 3;
@@ -56,7 +57,7 @@ Servo servo1;         //Criando objeto servo da frente
 
 void setup() {
   Serial.begin(9600);
-  Serial.flush();
+  //Serial.flush();
   
   // PINOS DOS MOTORES SAIDA
   pinMode(IN1, OUTPUT);     // LADO DIREITO 
@@ -82,63 +83,46 @@ void setup() {
 
 
 void loop() {
-  
   if (Serial.available() > 0){
     // Lê toda string recebida
     comando = leStringSerial();
-    //Serial.println(comando);
-
-    if(analogRead(infraFrente) < 500){
-      pare();
-      //Serial.println("Nao tem espaço a frente");
-    }
-    
     if(comando == "F"){
       frente(nrPulsosFrente);
     }
-  
     else if(comando == "R"){
       re(nrPulsosFrente);
     }
-  
     else if(comando == "D"){
       direita(nrPulsosLado);
     }
-  
     else if(comando == "E"){
       esquerda(nrPulsosLado);
     }
-  
     else if(comando == "ANGULO0"){
       servo1.write(servo0);
       delay(300);
       sonar();    // ja me retorna a distancia
     }
-  
     else if(comando == "ANGULO45"){
       servo1.write(servo45);
       delay(300);
       sonar();
     }
-  
     else if(comando == "ANGULO90"){
       servo1.write(servo90);
       delay(300);
       sonar();
     }
-  
     else if(comando == "ANGULO135"){
       servo1.write(servo135);
       delay(300);
       sonar();
     }
-  
     else if(comando == "ANGULO180"){
       servo1.write(servo180);
       delay(300);
       sonar();
     }
-
     else{
       //Serial.println("Comando nao encntrado");
       pare();
