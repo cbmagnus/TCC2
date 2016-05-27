@@ -17,8 +17,8 @@ String comando = "";
 int infraFrente = 0;        //analogico 0
 
 // VELOCIDADE DOS MOTORES
-int velDir = 240;
-int velEsq = 250;
+int velDir = 250;
+int velEsq = 230;
 int velMin = 0;
 
 // PINOS DOS MOTORES
@@ -45,6 +45,7 @@ int anteriorDir = 0;
 int anteriorEsq = 0;
 int nrPulsosFrente = 7;
 int nrPulsosRe = 2;
+int nrPulsosAcertaPos = 2;
 int nrPulsosLado = 15;
 // NUMERO DE FUROS DO ENCODER
 int nrFuros = 16;
@@ -98,30 +99,45 @@ void loop() {
     else if(comando == "E"){
       esquerda(nrPulsosLado);
     }
+    else if(comando == "ACERTAPOS"){
+      Serial.println("INICIO");
+      acertaPos(nrPulsosAcertaPos);
+      Serial.println("FIMM");
+    }
     else if(comando == "ANGULO0"){
       servo1.write(servo0);
+      Serial.println("INICIO");
       delay(300);
       sonar();    // ja me retorna a distancia
+      Serial.println("FIMM");
     }
     else if(comando == "ANGULO45"){
       servo1.write(servo45);
+      Serial.println("INICIO");
       delay(300);
       sonar();
+      Serial.println("FIMM");
     }
     else if(comando == "ANGULO90"){
       servo1.write(servo90);
+      Serial.println("INICIO");
       delay(300);
       sonar();
+      Serial.println("FIMM");
     }
     else if(comando == "ANGULO135"){
       servo1.write(servo135);
+      Serial.println("INICIO");
       delay(300);
       sonar();
+      Serial.println("FIMM");
     }
     else if(comando == "ANGULO180"){
       servo1.write(servo180);
+      Serial.println("INICIO");
       delay(300);
       sonar();
+      Serial.println("FIMM");
     }
     else{
       //Serial.println("Comando nao encntrado");

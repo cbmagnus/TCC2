@@ -12,4 +12,5 @@ void sonar(){
   //Serial.println(valor);
   distancia = (valor / 3);
   Serial.println(distancia);
+  delay(10);
 }

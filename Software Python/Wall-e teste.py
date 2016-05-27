@@ -28,17 +28,18 @@ porta = "COM5"
 velocidade = 9600
 
 try:
-    arduino = serial.Serial(porta, velocidade, timeout=1)
+    print 'Conectando'
+    arduino = serial.Serial(porta, velocidade)
+    time.sleep(1.5)
 except:
-    arduino.close()
-    time.sleep(2)
     print 'Aguarde, inicializando porta...'
+    arduino.close()
+    time.sleep(1.5)
     arduino.open()
-    time.sleep(3)
+    time.sleep(1.5)
 
 print '\nPorta = ' + arduino.portstr + '\n'      # Mostra a porta em uso
-    
-    
+time.sleep(0.5)
 
 class Image ():
     # Inicia a classe
@@ -54,6 +55,9 @@ class Image ():
         self.lista_compara_distancias = []
         self.listaParticulasCriadas = []
         self.sair = False
+        self.listaParedes = []
+        self.listaParedeTemporaria = []
+        self.listaParedePermanente = []
 
     # Salva matriz com valores do ultimo mapeamento feito e ultimo posicionamento
     def salvaMapeado(self, filename, matriz, ultimaPos):
@@ -66,7 +70,27 @@ class Image ():
 
     # Salva arquivo com as configurações ppm
     def save(self, filename):
+        print self.listaParedes
+        print self.listaParedeTemporaria
+        for i in range(len(self.listaParedeTemporaria)):
+            y,x = self.listaParedeTemporaria[i]
+            if self.data[y][x] == 0 or self.data[y][x] == 3:
+                self.data[y][x] = 2
 
+        for i in self.listaParedes:
+            if i in self.listaParedeTemporaria:
+                self.listaParedePermanente.append(i)
+        print self.listaParedePermanente
+
+        for i in range(len(self.listaEscaneado)):
+            y,x =  self.listaEscaneado[i]
+            self.data[y][x] = 3
+        self.listaEscaneado = []
+        
+        for i in range(len(self.listaPosicoes)):
+            y,x =  self.listaPosicoes[i]
+            self.data[y][x] = 4
+            
         #Força a sobreposição de cores da matriz 
         for i in range(len(self.lista_pos_localizacao)):
             y,x =  self.lista_pos_localizacao[i]
@@ -75,6 +99,7 @@ class Image ():
         for i in range(len(self.listaParticulasCriadas)):
             y,x =  self.listaParticulasCriadas[i]
             self.data[y][x] = 6
+            
         
         with open(filename,'w') as f:
             f.write("P3\n%d %d\n%d\n"%(self.coluna, self.linha, self.maxvalue))
@@ -96,15 +121,11 @@ class Image ():
                         f.write("%d %d %d\n" % (220,0,220))       #Pinta de Laranja  (Posições das particulas)
                     else:
                         print 'numero desconhecido dentro do mapa'
+                        
+        for i in range(len(self.listaParedeTemporaria)):
+            y,x = self.listaParedeTemporaria[i]
+            self.data[y][x] = 0
 
-        for i in range(len(self.listaEscaneado)):
-            y,x =  self.listaEscaneado[i]
-            self.data[y][x] = 3
-        self.listaEscaneado = []
-        
-        for i in range(len(self.listaPosicoes)):
-            y,x =  self.listaPosicoes[i]
-            self.data[y][x] = 4
                 
     # Salva valores em suas respectivas listas
     def salvaValor(self, y, x, valor):
@@ -118,7 +139,6 @@ class Image ():
         
         elif self.data[y][x] == 5 or self.data[y][x] == 6:
             self.lista_pos_localizacao.append([y,x])
-
             
 
 class Arquivo():
@@ -126,7 +146,7 @@ class Arquivo():
         self.numLinhas = 0
         self.numColunas = 0
         self.matriz = None
-        self.diretorio = 'Imagens mapeamento/Mapa Walle'
+        self.diretorio = 'Imagens_mapeamento/Mapa'
         self.diretorio_img_posicoes = 'mapeado/MapaMapeado.txt'
         self.mapaTeorico = 'mapa01.txt'
         self.matrizMapeada = None
@@ -204,21 +224,38 @@ class Sensor():
         self.distanciasMapeadas = [0,0,0,0,0]
         self.distanciasOriginal = [0,0,0,0,0]
         self.lista_direcoes_atualizada = []
+        self.recebido = ''
+        self.numQuadrados = 0
     
-    def percorreAngulos(self, partida, orient, img, arq):
-        self.dist0Graus = 0
-        self.dist45Graus = 0
-        self.dist90Graus = 0
-        self.dist135Graus = 0
-        self.dist180Graus = 0
-        distancia = 0
-        numQuadrados = 0
+    def escreveNoArduino(self, comand, sensor):
+        arduino.flush()
+        arduino.flushInput()
+        arduino.flushOutput()
+        self.numQuadrados = 0
+        self.recebido = ''
+        # Manda pro arduino o comando
+        arduino.write(comand)
+        time.sleep(0.1)
+        while len(self.recebido) != 6:          #Enquanto diferente de FIMM\n = 6 caracteres
+            self.recebido = arduino.readline()
+            if len(self.recebido) == 9:         #Se igual a PAREDEP\n = 9 caracteres espera 2 milesegundos
+                print 'Parede...'
+                time.sleep(0.1)
+            elif len(self.recebido) == 8 or len(self.recebido) == 0:    #Se igual INICIO\n = 8 aguarda
+                print 'aguardando resposta...'
+                time.sleep(0.1)
+            elif len(self.recebido) >= 3 and len(self.recebido) < 6:       # Se receber um numero = 42\n = 4 por exemplo 
+                self.numQuadrados = round(float('%.1f' % ( float(self.recebido)/10)))
+                
+    
+    def percorreAngulos(self, partida, orient, img, arq, sensor):
+        self.dist0Graus = -1
+        self.dist45Graus = -1
+        self.dist90Graus = -1
+        self.dist135Graus = -1
+        self.dist180Graus = -1
+
         angulo = [0, 45, 90, 135, 180]
-        
-        if arduino.readline() == 'PAREDE':
-            arduino.write('D')
-            time.sleep(1)
-            
         arduino.flush()
         arduino.flushInput()
         arduino.flushOutput()
@@ -227,23 +264,21 @@ class Sensor():
                 y,x = partida      # x = coluna  y= linha ------------------
                 if angulo[i] == 0:
                     if anda.original == True:
-                        arduino.write('ANGULO0')
-                        time.sleep(0.8)       #Aguarda 1 segundo para obter a media de distancia do arduino
-                        distancia = arduino.readline()
+                        sensor.escreveNoArduino('ANGULO0', sensor)
                         # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        numQuadrados = numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
-                        print numQuadrados
-                        if numQuadrados == 0:
+                        self.numQuadrados = self.numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
+                        print self.numQuadrados
+                        if self.numQuadrados == 0:  #Se for 0 assume a posição ao lado para dizer que é um obstaculo
                             x = x - 1
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x - 1
                             self.dist0Graus = self.dist0Graus + 1         #conta numero de casas livres à 0º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[0] = self.dist0Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -254,21 +289,17 @@ class Sensor():
                         self.distanciasMapeadas[0] = self.dist0Graus
                 elif angulo[i] == 45:
                     if anda.original == True:
-                        arduino.write('ANGULO45')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO45', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x - 1
                             y = y - 1
                             self.dist45Graus = self.dist45Graus + 1        #conta numero de casas livres à 45º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[1] = self.dist45Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -280,20 +311,17 @@ class Sensor():
                         self.distanciasMapeadas[1] = self.dist45Graus
                 elif angulo[i] == 90:
                     if anda.original == True:
-                        arduino.write('ANGULO90')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO90', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y - 1
                             self.dist90Graus = self.dist90Graus + 1       #conta numero de casas livres à 90º
-                            numQuadrados = numQuadrados - 1
-                        img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                            self.numQuadrados = self.numQuadrados - 1
+                        img.salvaValor(y,x,2)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[2] = self.dist90Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -304,21 +332,17 @@ class Sensor():
                         self.distanciasMapeadas[2] = self.dist90Graus
                 elif angulo[i] == 135:
                     if anda.original == True:
-                        arduino.write('ANGULO135')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO135', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y - 1
                             x = x + 1
                             self.dist135Graus = self.dist135Graus + 1        #conta numero de casas livres à 135º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[3] = self.dist135Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -330,23 +354,19 @@ class Sensor():
                         self.distanciasMapeadas[3] = self.dist135Graus
                 elif angulo[i] == 180:
                     if anda.original == True:
-                        arduino.write('ANGULO180')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        numQuadrados = numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
-                        print numQuadrados
-                        if numQuadrados == 0:
+                        sensor.escreveNoArduino('ANGULO180', sensor)
+                        print self.numQuadrados
+                        if self.numQuadrados == 0:
                             x = x + 1
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x + 1
                             self.dist180Graus = self.dist180Graus + 1        #conta numero de casas livres à 180º
-                            numQuadrados = numQuadrados - 1
-                        img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                            self.numQuadrados = self.numQuadrados - 1
+                        img.salvaValor(y,x,2)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[4] = self.dist180Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -358,6 +378,30 @@ class Sensor():
             y,x = partida                               # x = coluna  y= linha
             img.salvaValor(y,x,4)                       # Azul posição do robo
             print self.distanciasMapeadas
+            y,x = img.listaParedes[1]
+            a,b = img.listaParedes[0]
+            c,d = img.listaParedes[2]
+            print img.listaParedes
+            while x != b:
+                img.listaParedeTemporaria.append([y,x])
+                x = x -1
+            y,x = img.listaParedes[1]
+            while x != d:
+                img.listaParedeTemporaria.append([y,x])
+                x = x +1
+            y,x = img.listaParedes[1]
+            
+            while a != y:
+                img.listaParedeTemporaria.append([a,b])
+                a = a -1
+            while c != y:
+                img.listaParedeTemporaria.append([c,d])
+                c = c -1
+            img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+            anda.contaImg = anda.contaImg + 1
+            img.listaParedes = []
+            print img.listaParedeTemporaria
+            print img.listaParedePermanente
 
 #-----------------------------------------------------------------------------------------
         elif orient == 'leste':
@@ -365,23 +409,19 @@ class Sensor():
                 y,x = partida      # x = coluna  y= linha
                 if angulo[i] == 0:
                     if anda.original == True:
-                        arduino.write('ANGULO0')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        numQuadrados = numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
-                        print numQuadrados
-                        if numQuadrados == 0:
+                        sensor.escreveNoArduino('ANGULO0', sensor)
+                        self.numQuadrados = self.numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
+                        print self.numQuadrados
+                        if self.numQuadrados == 0:
                             y = y - 1
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y - 1                       # diminui linhas
                             self.dist0Graus = self.dist0Graus + 1
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[0] = self.dist0Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -392,21 +432,17 @@ class Sensor():
                         self.distanciasMapeadas[0] = self.dist0Graus
                 elif angulo[i] == 45:
                     if anda.original == True:
-                        arduino.write('ANGULO45')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO45', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x + 1                       #soma linhas e colunas
                             y = y - 1
                             self.dist45Graus = self.dist45Graus + 1        #conta numero de casas livres à 45º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[1] = self.dist45Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -418,20 +454,16 @@ class Sensor():
                         self.distanciasMapeadas[1] = self.dist45Graus
                 elif angulo[i] == 90:
                     if anda.original == True:
-                        arduino.write('ANGULO90')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO90', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x + 1                       #Soma colunas
                             self.dist90Graus = self.dist90Graus + 1       #conta numero de casas livres à 90º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[2] = self.dist90Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -442,21 +474,17 @@ class Sensor():
                         self.distanciasMapeadas[2] = self.dist90Graus
                 elif angulo[i] == 135:
                     if anda.original == True:
-                        arduino.write('ANGULO135')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO135', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
-                            y = y + 1                       #Soma linhas e colunas
+                            y = y + 1
                             x = x + 1
                             self.dist135Graus = self.dist135Graus + 1        #conta numero de casas livres à 135º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[3] = self.dist135Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -468,23 +496,19 @@ class Sensor():
                         self.distanciasMapeadas[3] = self.dist135Graus
                 elif angulo[i] == 180:
                     if anda.original == True:
-                        arduino.write('ANGULO180')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        numQuadrados = numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
-                        print numQuadrados
-                        if numQuadrados == 0:
+                        sensor.escreveNoArduino('ANGULO180', sensor)
+                        self.numQuadrados = self.numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
+                        print self.numQuadrados
+                        if self.numQuadrados == 0:
                             y = y + 1
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y + 1                       #Soma linhas
                             self.dist180Graus = self.dist180Graus + 1        #conta numero de casas livres à 180º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[4] = self.dist180Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -502,23 +526,19 @@ class Sensor():
                 y,x = partida                           # x = coluna  y= linha
                 if angulo[i] == 0:
                     if anda.original == True:
-                        arduino.write('ANGULO0')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        numQuadrados = numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
-                        print numQuadrados
-                        if numQuadrados == 0:
+                        sensor.escreveNoArduino('ANGULO0', sensor)
+                        self.numQuadrados = self.numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
+                        print self.numQuadrados
+                        if self.numQuadrados == 0:
                             x = x + 1  
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x + 1                       #aumento colunas
                             self.dist0Graus = self.dist0Graus + 1
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[0] = self.dist0Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -529,21 +549,17 @@ class Sensor():
                         self.distanciasMapeadas[0] = self.dist0Graus
                 elif angulo[i] == 45:
                     if anda.original == True:
-                        arduino.write('ANGULO45')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO45', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x + 1                       #Soma linhas e colunas
                             y = y + 1
                             self.dist45Graus = self.dist45Graus + 1        #conta numero de casas livres à 45º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[1] = self.dist45Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -555,20 +571,16 @@ class Sensor():
                         self.distanciasMapeadas[1] = self.dist45Graus
                 elif angulo[i] == 90:
                     if anda.original == True:
-                        arduino.write('ANGULO90')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO90', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y + 1                       #Aumenta linhas 
                             self.dist90Graus = self.dist90Graus + 1       #conta numero de casas livres à 90º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[2] = self.dist90Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -579,21 +591,17 @@ class Sensor():
                         self.distanciasMapeadas[2] = self.dist90Graus
                 elif angulo[i] == 135:
                     if anda.original == True:
-                        arduino.write('ANGULO135')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO135', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y + 1                       #aumenta linha diminui coluna
                             x = x - 1
                             self.dist135Graus = self.dist135Graus + 1        #conta numero de casas livres à 135º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[3] = self.dist135Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -605,23 +613,19 @@ class Sensor():
                         self.distanciasMapeadas[3] = self.dist135Graus
                 elif angulo[i] == 180:
                     if anda.original == True:
-                        arduino.write('ANGULO180')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        numQuadrados = numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
-                        print numQuadrados
-                        if numQuadrados == 0:
+                        sensor.escreveNoArduino('ANGULO180', sensor)
+                        self.numQuadrados = self.numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
+                        print self.numQuadrados
+                        if self.numQuadrados == 0:
                             x = x - 1  
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x - 1                       #Diminui linhas e colunas
                             self.dist180Graus = self.dist180Graus + 1        #conta numero de casas livres à 180º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[4] = self.dist180Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -639,23 +643,19 @@ class Sensor():
                 y,x = partida                           # x = coluna  y= linha
                 if angulo[i] == 0:
                     if anda.original == True:
-                        arduino.write('ANGULO0')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        numQuadrados = numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
-                        print numQuadrados
-                        if numQuadrados == 0:
+                        sensor.escreveNoArduino('ANGULO0', sensor)
+                        self.numQuadrados = self.numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
+                        print self.numQuadrados
+                        if self.numQuadrados == 0:
                             y = y + 1
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y + 1                       #Aumento linhas
                             self.dist0Graus = self.dist0Graus + 1
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[0] = self.dist0Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -666,21 +666,17 @@ class Sensor():
                         self.distanciasMapeadas[0] = self.dist0Graus
                 elif angulo[i] == 45:
                     if anda.original == True:
-                        arduino.write('ANGULO45')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO45', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x - 1                       #Aumento linhas diminui colunas
                             y = y + 1
                             self.dist45Graus = self.dist45Graus + 1        #conta numero de casas livres à 45º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[1] = self.dist45Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -692,20 +688,16 @@ class Sensor():
                         self.distanciasMapeadas[1] = self.dist45Graus
                 elif angulo[i] == 90:
                     if anda.original == True:
-                        arduino.write('ANGULO90')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO90', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             x = x - 1                       #Diminui colunas
                             self.dist90Graus = self.dist90Graus + 1       #conta numero de casas livres à 90º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[2] = self.dist90Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -716,21 +708,17 @@ class Sensor():
                         self.distanciasMapeadas[2] = self.dist90Graus
                 elif angulo[i] == 135:
                     if anda.original == True:
-                        arduino.write('ANGULO135')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        print numQuadrados
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        sensor.escreveNoArduino('ANGULO135', sensor)
+                        print self.numQuadrados
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y - 1                       #Diminui linhas e colunas
                             x = x - 1
                             self.dist135Graus = self.dist135Graus + 1        #conta numero de casas livres à 135º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[3] = self.dist135Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -742,23 +730,19 @@ class Sensor():
                         self.distanciasMapeadas[3] = self.dist135Graus
                 elif angulo[i] == 180:
                     if anda.original == True:
-                        arduino.write('ANGULO180')
-                        time.sleep(0.8)
-                        distancia = arduino.readline()
-                        # Divide por 10 a distancia encontrada sendo que cada quadrado tem 10cm Arredonda pra mais ou pra menos o numero de quadrados a ser pintados
-                        numQuadrados = round(float('%.1f' % ( float(distancia)/10)))
-                        numQuadrados = numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
-                        print numQuadrados
-                        if numQuadrados == 0:
+                        sensor.escreveNoArduino('ANGULO180', sensor)
+                        self.numQuadrados = self.numQuadrados - 1 # Pra cada lado o robo tem +- 10cm por isso diminuo 1 da leitura
+                        print self.numQuadrados
+                        if self.numQuadrados == 0:
                             y = y - 1
-                        while numQuadrados != 0 and numQuadrados > -1:
+                        while self.numQuadrados >= 0:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
                             y = y - 1
                             self.dist180Graus = self.dist180Graus + 1        #conta numero de casas livres à 180º
-                            numQuadrados = numQuadrados - 1
+                            self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         self.distanciasMapeadas[4] = self.dist180Graus
-                        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
                         anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
@@ -844,7 +828,7 @@ class Desloca():
                     y = (y+1)
                     self.destino = [y,x]
                     partida = self.destino
-                    sensor.percorreAngulos(partida, self.frente, img, arq)
+                    sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
                 
             elif self.frente == 'leste':
                 x = (x+1)
@@ -859,7 +843,7 @@ class Desloca():
                     self.destino = [y,x]
                     comando='@!'
                     partida = self.destino
-                    sensor.percorreAngulos(partida, self.frente, img, arq)
+                    sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
                 
             elif self.frente == 'sul':
                 y = (y+1)
@@ -874,7 +858,7 @@ class Desloca():
                     self.destino = [y,x]
                     comando='@!'
                     partida = self.destino
-                    sensor.percorreAngulos(partida, self.frente, img, arq)
+                    sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
                 
             elif self.frente == 'oeste':
                 x = (x-1)
@@ -889,14 +873,14 @@ class Desloca():
                     self.destino = [y,x]
                     comando='@!'
                     partida = self.destino
-                    sensor.percorreAngulos(partida, self.frente, img, arq)
+                    sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
                 
             if comando != '@!':
                 # Escaneia a orientação e salva imagem ppm
                 print partida
                 arq.ultimaPos = partida
-                sensor.percorreAngulos(partida, self.frente, img, arq)
-                img.save('%s %d.ppm' %(diretorio, self.contaImg))
+                sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
+                img.save('%s%d.ppm' %(diretorio, self.contaImg))
                 self.contaImg = self.contaImg + 1 
         
         elif comando == 'R':
@@ -986,8 +970,8 @@ class Desloca():
                 # Escaneia a orientação e salva imagem ppm
                 print partida
                 arq.ultimaPos = partida
-                sensor.percorreAngulos(partida, self.frente, img, arq)
-                img.save('%s %d.ppm' %(diretorio, self.contaImg))
+                sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
+                img.save('%s%d.ppm' %(diretorio, self.contaImg))
                 self.contaImg = self.contaImg + 1
             
         elif comando == 'D':
@@ -996,8 +980,8 @@ class Desloca():
             self.frente = orientacao.descobreOrientacao(self.frente, comando)
             print self.frente
             # Escaneia a orientação e salva imagem ppm
-            sensor.percorreAngulos(partida, self.frente, img, arq)
-            img.save('%s %d.ppm' %(diretorio, self.contaImg))
+            sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
+            img.save('%s%d.ppm' %(diretorio, self.contaImg))
             self.contaImg = self.contaImg + 1
         
         elif comando == 'E':
@@ -1006,8 +990,8 @@ class Desloca():
             self.frente = orientacao.descobreOrientacao(self.frente, comando)
             print self.frente
             # Escaneia a orientação e salva imagem ppm
-            sensor.percorreAngulos(partida, self.frente, img, arq)
-            img.save('%s %d.ppm' %(diretorio, self.contaImg))
+            sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
+            img.save('%s%d.ppm' %(diretorio, self.contaImg))
             self.contaImg = self.contaImg + 1
             
         else:
@@ -1033,43 +1017,55 @@ class Desloca():
 class Automatico():
     def auto(self, partid, orientacao, img, sensor, anda, arq):
         y,x = partid
-        partida = partid     
+        partida = partid 
         chegada = []
-        # Enquanto não chegar ao ponto da primeira curva segue percurso
-        while chegada != partida:
-            #print sensor.distanciasMapeadas #[0, 45, 90, 135, 180]
-            # Enquanto eu não encontrar parede vou para frente
-            while sensor.distanciasMapeadas[2] > 1:               # 90º graus
-                partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                y,x = partida
-            #if sensor.distanciasMapeadas[0] != 0: #Se tiver espaço a esquerda marca ela como a chegada e fim do escanemento
-                #chegada = [y,x-1]
-            #else:                                   #Se não marca essa posição como chegada e fim do escanemento
-            chegada = partida
-            partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+        cont = 3
+        # Enquanto eu não encontrar parede vou para frente
+        while sensor.distanciasMapeadas[2] > 1:               # 90º graus
             partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-            
-            # Segue o curso até encontrar uma posição conhecida e fexar programa
-            while chegada != partida:
-                #Enquanto angulo 0 for entre 1 e 3 e chegada != partida segue loop
-                while sensor.distanciasMapeadas[0] > 0 and sensor.distanciasMapeadas[0] < 4 and chegada != partida:        #Enquanto tiver a parede a esquerda
-                    partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                    
-                    if sensor.distanciasMapeadas[0] > 3:
-                        partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                        partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                        partida = anda.anda(partida, anda.frente, orientacao, img, 'E', arq.diretorio)
-                        partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                        partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
-                    
-                    elif sensor.distanciasMapeadas[0] < 3 and sensor.distanciasMapeadas[2] < 3 and sensor.distanciasMapeadas[4] < 3:
-                        partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                        partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
-                        
-                    elif sensor.distanciasMapeadas[2] < 2:        # 90º graus
-                        partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+            img.listaParedeTemporaria = []
+        partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+        chegada.append(partida)
+        dirPartida = anda.frente
+        y,x = partida
+        while cont > 0:
+            y = y - 1
+            chegada.append([y,x])
+            cont = cont - 1
+        y,x = partida
+        while cont < 3:
+            y = y + 1
+            chegada.append([y,x])
+            cont = cont + 1
+        partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+        
+        print partida
+        print chegada
+        # Segue o curso até encontrar uma posição conhecida e mesma direção
+        while not(partida in chegada) and anda.frente == dirPartida:
+            #Enquanto angulo 0 for entre 1 e 3 e chegada != partida segue loop
+            while sensor.distanciasMapeadas[0] > 0 and sensor.distanciasMapeadas[0] < 4 and not(partida in chegada):
+                partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
                 
-                partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)                        
+                if sensor.distanciasMapeadas[0] > 3:
+                    partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                    partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                    partida = anda.anda(partida, anda.frente, orientacao, img, 'E', arq.diretorio)
+                    partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                    partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                
+                elif sensor.distanciasMapeadas[0] < 3 and sensor.distanciasMapeadas[2] < 3 and sensor.distanciasMapeadas[4] < 3:
+                    partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+                    partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+                    
+                elif sensor.distanciasMapeadas[2] < 2:        # 90º graus
+                    partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+                    
+                elif sensor.distanciasMapeadas[0] == 0:
+                    sensor.escreveNoArduino('ACERTAPOS', sensor)
+            
+            sensor.percorreAngulos(partida, anda.frente, img, arq, sensor)
+                
                     
         anda.original = True
         return 'SAIR'
@@ -1089,7 +1085,7 @@ class EncontraPossiveisPosicoes():
                 if arq.matrizMapeada[y][x] == 3 or arq.matrizMapeada[y][x] == 4:
                     for direcao in direcoes:
                         print direcao.upper()
-                        sensor.percorreAngulos([y,x], direcao, img, arq)
+                        sensor.percorreAngulos([y,x], direcao, img, arq, sensor)
                         print sensor.distanciasOriginal
                         print sensor.distanciasMapeadas
                         
@@ -1097,13 +1093,13 @@ class EncontraPossiveisPosicoes():
                         if all(map(operator.eq, sensor.distanciasOriginal, sensor.distanciasMapeadas)):
                             img.salvaValor(y,x,5)
                             img.lista_direcoes.append(direcao)
-                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+                            img.save('%s%d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
                             anda.contaImg = anda.contaImg + 1
                         else:
                             print 'Não são compativeis'
                 else:
                     print 'Não é possivel estar aqui. Possivel parede!'
-        img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+        img.save('%s%d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
         anda.contaImg = anda.contaImg + 1
         print '\n',img.lista_pos_localizacao
         print img.lista_direcoes,'\n'
@@ -1131,7 +1127,7 @@ class EncontraPossiveisPosicoes():
                 print posicao
                 print direc
                 y,x = posicao
-                sensor.percorreAngulos([y,x], direc, img, arq)
+                sensor.percorreAngulos([y,x], direc, img, arq, sensor)
                 print sensor.distanciasMapeadas
                 #Se o mapeamento do robo for compativel com alguma particula em 360º salva se não volta a ser mapeada
                 if all(map(operator.eq, mapeamentoDoRobo, sensor.distanciasMapeadas)):
@@ -1159,7 +1155,7 @@ class EncontraPossiveisPosicoes():
             img.sair = True
             img.lista_pos_localizacao = listaPosicoesTEMP
             print '\nSua posição é' + str(listaPosicoesTEMP[0]) + '\n'
-            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+            img.save('%s%d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
             anda.contaImg = anda.contaImg + 1
         
         elif len(listaPosicoesTEMP) > 1:
@@ -1174,7 +1170,7 @@ class Mapeia():
         arq.obtemTamanhoMatriz()
         img = Image(arq.numColunas, arq.numLinhas)
         #Salva previa do mapa vazio
-        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
         anda.contaImg = anda.contaImg + 1
         print anda.comando
         #verifica qual orientação
@@ -1182,8 +1178,8 @@ class Mapeia():
         # Copia mapa teorico para matrizMapeada para não dar erro de verificação de matriz nula quando compara em percorre angulos
         arq.matrizMapeada = arq.matriz
         # Escaneia e salva estado inicial com primeiro mapemento
-        sensor.percorreAngulos(partida, anda.frente, img, arq)
-        img.save('%s %d.ppm' %(arq.diretorio, anda.contaImg))
+        sensor.percorreAngulos(partida, anda.frente, img, arq, sensor)
+        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
         anda.contaImg = anda.contaImg + 1
         
         anda.original = True
@@ -1228,7 +1224,7 @@ class Mapeia():
             y,x = pos
             img.salvaValor(y,x,6)                
        
-        img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+        img.save('%s%d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
         anda.contaImg = anda.contaImg + 1
    
    
@@ -1243,7 +1239,7 @@ class Mapeia():
    
    
 if __name__ == "__main__":
-    partida = [50,50]     #(linha, coluna)
+    partida = [30,30]     #(linha, coluna)
     direcaoRobo = 'norte'
     sensor = Sensor()
     direcoes = ['norte', 'leste', 'sul', 'oeste']
@@ -1261,8 +1257,8 @@ if __name__ == "__main__":
     #cria diretorios caso não existam
     if not os.path.exists('mapeado'):
         os.mkdir('mapeado')
-    if not os.path.exists('Imagens mapeamento'):
-        os.mkdir('Imagens mapeamento')
+    if not os.path.exists('Imagens_mapeamento'):
+        os.mkdir('Imagens_mapeamento')
         
         
     while anda.comando != 'SAIR':
@@ -1280,7 +1276,7 @@ if __name__ == "__main__":
 
             while anda.comando != 'SAIR':
                 #Inicia o escaneamento do robo real
-                sensor.percorreAngulos(partida, direcaoRobo, img, arq)
+                sensor.percorreAngulos(partida, direcaoRobo, img, arq, sensor)
                 sensor.distanciasOriginal[0] = sensor.distanciasMapeadas[0]
                 sensor.distanciasOriginal[1] = sensor.distanciasMapeadas[1]
                 sensor.distanciasOriginal[2] = sensor.distanciasMapeadas[2]
@@ -1296,7 +1292,7 @@ if __name__ == "__main__":
                 else:
                     # Esta parte é responsável por eliminar todas possiveis posições deixando apenas 1
                     encPosPos.eliminaPosicoesDoVetor(arq, direcoes, sensor, img, anda, partida, mapeamentoDoRobo)
-                    img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+                    img.save('%s%d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
                     anda.contaImg = anda.contaImg + 1
                     if img.sair == True:
                         break
@@ -1324,7 +1320,7 @@ if __name__ == "__main__":
                             img.lista_pos_localizacao = listaLocalTemporaria
                             print img.lista_pos_localizacao
                             print img.lista_direcoes
-                            img.save('%s %d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
+                            img.save('%s%d.ppm' %(arq.diretorio_img_posicoes, anda.contaImg))
                             anda.contaImg = anda.contaImg + 1
                         
                         # Se tiver parede a frente vira para o lado contrário
