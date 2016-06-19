@@ -16,4 +16,5 @@ String leStringSerial(){
   }
   //Serial.println(conteudo);
   return conteudo;
+  delay(10);
 }

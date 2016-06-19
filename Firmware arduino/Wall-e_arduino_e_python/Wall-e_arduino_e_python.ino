@@ -17,8 +17,8 @@ String comando = "";
 int infraFrente = 0;        //analogico 0
 
 // VELOCIDADE DOS MOTORES
-int velDir = 250;
-int velEsq = 230;
+int velDir = 255;
+int velEsq = 255;
 int velMin = 0;
 
 // PINOS DOS MOTORES
@@ -28,10 +28,10 @@ int IN3 = 6;
 int IN4 = 7;
 
 // POSICIONAMENTO SERVO ENTRE 0 E 180
-int servo0 = 170;
-int servo45 = 125;
-int servo90 = 75;
-int servo135 = 35;
+int servo0 = 173;
+int servo45 = 118;
+int servo90 = 73;
+int servo135 = 40;
 int servo180 = 0;
 
 // SENSOR ULTRASSONICO
@@ -43,12 +43,19 @@ int pulsosDir = 0;
 int pulsosEsq = 0;
 int anteriorDir = 0;
 int anteriorEsq = 0;
+int saida = 0;
+int e = 0;
+int d = 0;
+
+// CONTADOR DE PULSOS
 int nrPulsosFrente = 7;
-int nrPulsosRe = 2;
-int nrPulsosAcertaPos = 2;
+int nrPulsosRe = 3;
+int nrPulsosAcertaPos = 4;
 int nrPulsosLado = 15;
+
 // NUMERO DE FUROS DO ENCODER
 int nrFuros = 16;
+
 //PINO LIGADO AO ENCODER
 int encoderDir = 2;
 int encoderEsq = 3;
@@ -88,18 +95,31 @@ void loop() {
     // Lê toda string recebida
     comando = leStringSerial();
     if(comando == "F"){
+      Serial.println("INICIO");
       frente(nrPulsosFrente);
+      Serial.println("FIMM");
     }
     else if(comando == "R"){
+      Serial.println("INICIO");
       re(nrPulsosFrente);
+      Serial.println("FIMM");
     }
     else if(comando == "D"){
+      Serial.println("INICIO");
       direita(nrPulsosLado);
+      Serial.println("FIMM");
     }
     else if(comando == "E"){
+      Serial.println("INICIO");
       esquerda(nrPulsosLado);
+      Serial.println("FIMM");
     }
-    else if(comando == "ACERTAPOS"){
+    else if(comando == "TRAS"){ // pequena ré quando gira para direita
+      Serial.println("INICIO");
+      re(nrPulsosRe);
+      Serial.println("FIMM");
+    }
+    else if(comando == "ACERTAPOS"){ // acerta a posição quando anda não linearmente em direção a uma parede
       Serial.println("INICIO");
       acertaPos(nrPulsosAcertaPos);
       Serial.println("FIMM");
@@ -142,7 +162,9 @@ void loop() {
     else{
       //Serial.println("Comando nao encntrado");
       pare();
+      delay(100);
     }
     pare();
+    delay(100);
   }
 }

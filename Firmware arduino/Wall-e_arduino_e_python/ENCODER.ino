@@ -1,38 +1,63 @@
 void encoder(int nrPulsos){
-  while(nrPulsos >= pulsosDir && nrPulsos >= pulsosEsq && analogRead(infraFrente) > 500){
+  while((saida != 2) and (analogRead(infraFrente) > 500)){  
     // Encoder lado direito
-    if(digitalRead(encoderDir) == LOW && anteriorDir == 0){
+    if((digitalRead(encoderDir) == LOW) and (anteriorDir == 0)){
       anteriorDir = 1;
-      delay(5);
+      delay(10);
     }
     // Encoder lado Esquerdo
-    if(digitalRead(encoderEsq) == LOW && anteriorEsq == 0){
+    if((digitalRead(encoderEsq) == LOW) and (anteriorEsq == 0) and (nrPulsos >= pulsosEsq)){
       anteriorEsq = 1;
-      delay(5);
+      delay(10);
     }
-    
-    if(digitalRead(encoderDir) == HIGH && anteriorDir == 1){
+
+        
+    if((digitalRead(encoderDir) == HIGH) and (anteriorDir == 1) and (nrPulsos >= pulsosDir)){
       pulsosDir = pulsosDir + 1;
       anteriorDir = 0;
-      delay(5);
+      delay(10);
     }
-    if(digitalRead(encoderEsq) == HIGH && anteriorEsq == 1){
+    if((digitalRead(encoderEsq) == HIGH) and (anteriorEsq == 1) and (nrPulsos >= pulsosEsq)){
       pulsosEsq = pulsosEsq + 1;
       anteriorEsq = 0;
-      delay(5);
+      delay(10);
     }
+
+
+
+    //Quando atingido o nr de pulsos. Para o lado corespondente
+    if(nrPulsos <= pulsosDir){
+      analogWrite (IN1, velMin);
+      analogWrite (IN2, velMin);
+      delay(10);
+      if(d <= 0){
+        saida = saida + 1;
+        d = d + 1;
+      }
+    }
+    if(nrPulsos <= pulsosEsq){
+      analogWrite (IN3, velMin);
+      analogWrite (IN4, velMin);
+      delay(10);
+      if(e <= 0){
+        saida = saida + 1;
+        e = e + 1;
+      }
+    }
+    delay(10);
   }
 
+
   if(analogRead(infraFrente) < 500){
-    pare();
-    delay(100);
     Serial.println("PAREDEP");
     re(nrPulsosRe);
-    delay(100);
     Serial.println("FIMM");
   }
   
   pulsosEsq = 0;
   pulsosDir = 0;
-  delay(20);
+  saida = 0;
+  e = 0;
+  d = 0;
+  delay(30);
 }
