@@ -18,7 +18,7 @@ int infraFrente = 0;        //analogico 0
 
 // VELOCIDADE DOS MOTORES
 int velDir = 255;
-int velEsq = 255;
+int velEsq = 250;
 int velMin = 0;
 
 // PINOS DOS MOTORES
@@ -51,7 +51,7 @@ int d = 0;
 int nrPulsosFrente = 7;
 int nrPulsosRe = 3;
 int nrPulsosAcertaPos = 4;
-int nrPulsosLado = 15;
+int nrPulsosLado = 16;
 
 // NUMERO DE FUROS DO ENCODER
 int nrFuros = 16;

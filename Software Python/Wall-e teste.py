@@ -16,6 +16,8 @@ F                   # Anda para frente
 D                   # Anda para direita
 E                   # Anda para esquerda
 R                   # Anda para tras
+TRAS                # Pequeno ajuste de posicionamento quando gira para se manter na mesma posição do mapa
+ACERTAPOS           # Acerta posição quando não anda em linha reta (não gira corretamente)
 
 """
 
@@ -52,7 +54,7 @@ class Image ():
         self.listaPosicoes = []
         self.lista_pos_localizacao = []
         self.lista_direcoes = []
-        self.lista_compara_distancias = []
+        #self.lista_compara_distancias = []
         self.listaParticulasCriadas = []
         self.sair = False
         self.listaParedes = []
@@ -70,17 +72,22 @@ class Image ():
 
     # Salva arquivo com as configurações ppm
     def save(self, filename):
-        print self.listaParedes
-        print self.listaParedeTemporaria
+
+        for i in range(len(self.listaParedeTemporaria)):
+            y,x = self.listaParedeTemporaria[i]
+            self.data[y][x] = 0
+
         for i in range(len(self.listaParedeTemporaria)):
             y,x = self.listaParedeTemporaria[i]
             if self.data[y][x] == 0 or self.data[y][x] == 3:
                 self.data[y][x] = 2
-
+                
         for i in self.listaParedes:
             if i in self.listaParedeTemporaria:
                 self.listaParedePermanente.append(i)
-        print self.listaParedePermanente
+                y,x = i
+                self.data[y][x] = 2
+        self.listaParedes = []
 
         for i in range(len(self.listaEscaneado)):
             y,x =  self.listaEscaneado[i]
@@ -120,11 +127,7 @@ class Image ():
                     elif coluna == 6:
                         f.write("%d %d %d\n" % (220,0,220))       #Pinta de Laranja  (Posições das particulas)
                     else:
-                        print 'numero desconhecido dentro do mapa'
-                        
-        for i in range(len(self.listaParedeTemporaria)):
-            y,x = self.listaParedeTemporaria[i]
-            self.data[y][x] = 0
+                        print 'numero desconhecido dentro do mapa'            
 
                 
     # Salva valores em suas respectivas listas
@@ -278,8 +281,8 @@ class Sensor():
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
                         img.listaParedes.append([y,x])
                         self.distanciasMapeadas[0] = self.dist0Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -298,9 +301,10 @@ class Sensor():
                             self.dist45Graus = self.dist45Graus + 1        #conta numero de casas livres à 45º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[1] = self.dist45Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -321,8 +325,8 @@ class Sensor():
                         img.salvaValor(y,x,2)
                         img.listaParedes.append([y,x])
                         self.distanciasMapeadas[2] = self.dist90Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -341,9 +345,10 @@ class Sensor():
                             self.dist135Graus = self.dist135Graus + 1        #conta numero de casas livres à 135º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[3] = self.dist135Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -366,8 +371,8 @@ class Sensor():
                         img.salvaValor(y,x,2)
                         img.listaParedes.append([y,x])
                         self.distanciasMapeadas[4] = self.dist180Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -378,18 +383,19 @@ class Sensor():
             y,x = partida                               # x = coluna  y= linha
             img.salvaValor(y,x,4)                       # Azul posição do robo
             print self.distanciasMapeadas
-            y,x = img.listaParedes[1]
+            
+            y,x = img.listaParedes[2]
             a,b = img.listaParedes[0]
-            c,d = img.listaParedes[2]
+            c,d = img.listaParedes[4]
             print img.listaParedes
-            while x != b:
+            while x >= b:
                 img.listaParedeTemporaria.append([y,x])
                 x = x -1
-            y,x = img.listaParedes[1]
-            while x != d:
+            y,x = img.listaParedes[2]
+            while x <= d:
                 img.listaParedeTemporaria.append([y,x])
                 x = x +1
-            y,x = img.listaParedes[1]
+            y,x = img.listaParedes[2]
             
             while a != y:
                 img.listaParedeTemporaria.append([a,b])
@@ -397,11 +403,6 @@ class Sensor():
             while c != y:
                 img.listaParedeTemporaria.append([c,d])
                 c = c -1
-            img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-            anda.contaImg = anda.contaImg + 1
-            img.listaParedes = []
-            print img.listaParedeTemporaria
-            print img.listaParedePermanente
 
 #-----------------------------------------------------------------------------------------
         elif orient == 'leste':
@@ -420,9 +421,10 @@ class Sensor():
                             self.dist0Graus = self.dist0Graus + 1
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[0] = self.dist0Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -441,9 +443,10 @@ class Sensor():
                             self.dist45Graus = self.dist45Graus + 1        #conta numero de casas livres à 45º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[1] = self.dist45Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -462,9 +465,10 @@ class Sensor():
                             self.dist90Graus = self.dist90Graus + 1       #conta numero de casas livres à 90º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[2] = self.dist90Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -483,9 +487,10 @@ class Sensor():
                             self.dist135Graus = self.dist135Graus + 1        #conta numero de casas livres à 135º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[3] = self.dist135Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -507,9 +512,10 @@ class Sensor():
                             self.dist180Graus = self.dist180Graus + 1        #conta numero de casas livres à 180º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[4] = self.dist180Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -520,6 +526,26 @@ class Sensor():
             y,x = partida                               # x = coluna  y= linha
             img.salvaValor(y,x,4)                       # Azul posição do robo
             print self.distanciasMapeadas
+            
+            y,x = img.listaParedes[2]
+            a,b = img.listaParedes[0]
+            c,d = img.listaParedes[4]
+            print img.listaParedes
+            while y >= a:
+                img.listaParedeTemporaria.append([y,x])
+                y = y -1
+            y,x = img.listaParedes[2]
+            while y <= c:
+                img.listaParedeTemporaria.append([y,x])
+                y = y +1
+            y,x = img.listaParedes[2]
+            
+            while b != x:
+                img.listaParedeTemporaria.append([a,b])
+                b = b +1
+            while d != x:
+                img.listaParedeTemporaria.append([c,d])
+                d = d +1
 #------------------------------------------------------------------------------------
         elif orient == 'sul':
             for i in range(len(angulo)):
@@ -537,9 +563,10 @@ class Sensor():
                             self.dist0Graus = self.dist0Graus + 1
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[0] = self.dist0Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -558,9 +585,10 @@ class Sensor():
                             self.dist45Graus = self.dist45Graus + 1        #conta numero de casas livres à 45º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[1] = self.dist45Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -579,9 +607,10 @@ class Sensor():
                             self.dist90Graus = self.dist90Graus + 1       #conta numero de casas livres à 90º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[2] = self.dist90Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -600,9 +629,10 @@ class Sensor():
                             self.dist135Graus = self.dist135Graus + 1        #conta numero de casas livres à 135º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[3] = self.dist135Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -624,9 +654,10 @@ class Sensor():
                             self.dist180Graus = self.dist180Graus + 1        #conta numero de casas livres à 180º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[4] = self.dist180Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -637,6 +668,26 @@ class Sensor():
             y,x = partida                               # x = coluna  y= linha
             img.salvaValor(y,x,4)                       # Azul posição do robo
             print self.distanciasMapeadas
+            
+            y,x = img.listaParedes[2]
+            a,b = img.listaParedes[0]
+            c,d = img.listaParedes[4]
+            print img.listaParedes
+            while x <= b:
+                img.listaParedeTemporaria.append([y,x])
+                x = x +1
+            y,x = img.listaParedes[2]
+            while x >= d:
+                img.listaParedeTemporaria.append([y,x])
+                x = x -1
+            y,x = img.listaParedes[2]
+            
+            while a != y:
+                img.listaParedeTemporaria.append([a,b])
+                a = a +1
+            while c != y:
+                img.listaParedeTemporaria.append([c,d])
+                c = c +1
 #----------------------------------------------------------------------------------
         elif orient == 'oeste':
             for i in range(len(angulo)):
@@ -654,9 +705,10 @@ class Sensor():
                             self.dist0Graus = self.dist0Graus + 1
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[0] = self.dist0Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -675,9 +727,10 @@ class Sensor():
                             self.dist45Graus = self.dist45Graus + 1        #conta numero de casas livres à 45º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[1] = self.dist45Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -696,9 +749,10 @@ class Sensor():
                             self.dist90Graus = self.dist90Graus + 1       #conta numero de casas livres à 90º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[2] = self.dist90Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -717,9 +771,10 @@ class Sensor():
                             self.dist135Graus = self.dist135Graus + 1        #conta numero de casas livres à 135º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[3] = self.dist135Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -741,9 +796,10 @@ class Sensor():
                             self.dist180Graus = self.dist180Graus + 1        #conta numero de casas livres à 180º
                             self.numQuadrados = self.numQuadrados - 1
                         img.salvaValor(y,x,2)               #Branco (Obstáculo)
+                        img.listaParedes.append([y,x])
                         self.distanciasMapeadas[4] = self.dist180Graus
-                        img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
-                        anda.contaImg = anda.contaImg + 1
+                        #img.save('%s%d.ppm' %(arq.diretorio, anda.contaImg))
+                        #anda.contaImg = anda.contaImg + 1
                     else:
                         while arq.matriz[y][x] != '*' and arq.matrizMapeada[y][x] != 2:
                             img.salvaValor(y,x,1)           #Verde (Caminho do raio)
@@ -754,6 +810,26 @@ class Sensor():
             y,x = partida                               # x = coluna  y= linha
             img.salvaValor(y,x,4)                       # Azul posição do robo
             print self.distanciasMapeadas
+            
+            y,x = img.listaParedes[2]
+            a,b = img.listaParedes[0]
+            c,d = img.listaParedes[4]
+            print img.listaParedes
+            while y >= a:
+                img.listaParedeTemporaria.append([y,x])
+                y = y -1
+            y,x = img.listaParedes[2]
+            while y <= c:
+                img.listaParedeTemporaria.append([y,x])
+                y = y +1
+            y,x = img.listaParedes[2]
+            
+            while b != x:
+                img.listaParedeTemporaria.append([a,b])
+                b = b -1
+            while d != x:
+                img.listaParedeTemporaria.append([c,d])
+                d = d -1
             
         arduino.write('ANGULO90')
         time.sleep(0.6)
@@ -819,8 +895,7 @@ class Desloca():
                 y = (y-1)
                 self.destino = [y,x]
                 if img.data[y][x] != 2:
-                    arduino.write('F')
-                    time.sleep(1)
+                    sensor.escreveNoArduino('F', sensor)
                     partida = self.destino
                 elif img.data[y][x] == 2:
                     print 'Nao e permitido avancar! Tem uma parede ai!'
@@ -834,8 +909,7 @@ class Desloca():
                 x = (x+1)
                 self.destino = [y,x]
                 if img.data[y][x] != 2:
-                    arduino.write('F')
-                    time.sleep(1)
+                    sensor.escreveNoArduino('F', sensor)
                     partida = self.destino
                 elif img.data[y][x] == 2:
                     print 'Nao e permitido avancar! Tem uma parede ai!'
@@ -849,8 +923,7 @@ class Desloca():
                 y = (y+1)
                 self.destino = [y,x]
                 if img.data[y][x] != 2:
-                    arduino.write('F')
-                    time.sleep(1)
+                    sensor.escreveNoArduino('F', sensor)
                     partida = self.destino
                 elif img.data[y][x] == 2:
                     print 'Nao e permitido avancar! Tem uma parede ai!'
@@ -864,8 +937,7 @@ class Desloca():
                 x = (x-1)
                 self.destino = [y,x]
                 if img.data[y][x] != 2:
-                    arduino.write('F')
-                    time.sleep(1)
+                    sensor.escreveNoArduino('F', sensor)
                     partida = self.destino
                 elif img.data[y][x] == 2:
                     print 'Nao e permitido avancar! Tem uma parede ai!'
@@ -890,8 +962,7 @@ class Desloca():
                 y = (y+1)
                 self.destino = [y,x]
                 if img.data[y][x] != 2:
-                    arduino.write('R')
-                    time.sleep(1)
+                    sensor.escreveNoArduino('R', sensor)
                     partida = self.destino
                 elif img.data[y][x] == 2:
                     print 'Nao e permitido avancar! Tem uma parede ai!'
@@ -910,8 +981,7 @@ class Desloca():
                 x = (x-1)
                 self.destino = [y,x]
                 if img.data[y][x] != 2:
-                    arduino.write('R')
-                    time.sleep(1)
+                    sensor.escreveNoArduino('R', sensor)
                     partida = self.destino
                 elif img.data[y][x] == 2:
                     print 'Nao e permitido avancar! Tem uma parede ai!'
@@ -930,8 +1000,7 @@ class Desloca():
                 y = (y-1)
                 self.destino = [y,x]
                 if img.data[y][x] != 2:
-                    arduino.write('R')
-                    time.sleep(1)
+                    sensor.escreveNoArduino('R', sensor)
                     partida = self.destino
                 elif img.data[y][x] == 2:
                     print 'Nao e permitido avancar! Tem uma parede ai!'
@@ -950,8 +1019,7 @@ class Desloca():
                 x = (x+1)
                 self.destino = [y,x]
                 if img.data[y][x] != 2:
-                    arduino.write('R')
-                    time.sleep(1)
+                    sensor.escreveNoArduino('R', sensor)
                     partida = self.destino
                 elif img.data[y][x] == 2:
                     print 'Nao e permitido avancar! Tem uma parede ai!'
@@ -975,20 +1043,46 @@ class Desloca():
                 self.contaImg = self.contaImg + 1
             
         elif comando == 'D':
-            arduino.write('D')
-            time.sleep(1)
+            sensor.escreveNoArduino('D', sensor)
+            sensor.escreveNoArduino('TRAS', sensor)
             self.frente = orientacao.descobreOrientacao(self.frente, comando)
             print self.frente
+            if self.frente == 'norte':
+                y = (y-1)
+                self.destino = [y,x]
+            elif self.frente == 'leste':
+                x = (x+1)
+                self.destino = [y,x]
+            elif self.frente == 'sul':
+                y = (y+1)
+                self.destino = [y,x]
+            elif self.frente == 'oeste':
+                x = (x-1)
+                self.destino = [y,x]
+            partida = self.destino
             # Escaneia a orientação e salva imagem ppm
             sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
             img.save('%s%d.ppm' %(diretorio, self.contaImg))
             self.contaImg = self.contaImg + 1
         
         elif comando == 'E':
-            arduino.write('E')
-            time.sleep(1)
+            sensor.escreveNoArduino('E', sensor)
+            sensor.escreveNoArduino('TRAS', sensor)
             self.frente = orientacao.descobreOrientacao(self.frente, comando)
             print self.frente
+            if self.frente == 'norte':
+                y = (y-1)
+                self.destino = [y,x]
+            elif self.frente == 'leste':
+                x = (x+1)
+                self.destino = [y,x]
+            elif self.frente == 'sul':
+                y = (y+1)
+                self.destino = [y,x]
+            elif self.frente == 'oeste':
+                x = (x-1)
+                self.destino = [y,x]
+            partida = self.destino
             # Escaneia a orientação e salva imagem ppm
             sensor.percorreAngulos(partida, self.frente, img, arq, sensor)
             img.save('%s%d.ppm' %(diretorio, self.contaImg))
@@ -1025,6 +1119,7 @@ class Automatico():
             partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
             img.listaParedeTemporaria = []
         partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+        img.listaParedeTemporaria = []
         chegada.append(partida)
         dirPartida = anda.frente
         y,x = partida
@@ -1038,35 +1133,45 @@ class Automatico():
             chegada.append([y,x])
             cont = cont + 1
         partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+        img.listaParedeTemporaria = []
         
         print partida
         print chegada
         # Segue o curso até encontrar uma posição conhecida e mesma direção
         while not(partida in chegada) and anda.frente == dirPartida:
             #Enquanto angulo 0 for entre 1 e 3 e chegada != partida segue loop
-            while sensor.distanciasMapeadas[0] > 0 and sensor.distanciasMapeadas[0] < 4 and not(partida in chegada):
+            while sensor.distanciasMapeadas[0] >= 0 and sensor.distanciasMapeadas[0] < 4 and not(partida in chegada):
                 partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                img.listaParedeTemporaria = []
                 
                 if sensor.distanciasMapeadas[0] > 3:
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                    img.listaParedeTemporaria = []
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                    img.listaParedeTemporaria = []
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'E', arq.diretorio)
+                    img.listaParedeTemporaria = []
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                    img.listaParedeTemporaria = []
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'F', arq.diretorio)
+                    img.listaParedeTemporaria = []
                 
                 elif sensor.distanciasMapeadas[0] < 3 and sensor.distanciasMapeadas[2] < 3 and sensor.distanciasMapeadas[4] < 3:
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+                    img.listaParedeTemporaria = []
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+                    img.listaParedeTemporaria = []
                     
                 elif sensor.distanciasMapeadas[2] < 2:        # 90º graus
                     partida = anda.anda(partida, anda.frente, orientacao, img, 'D', arq.diretorio)
+                    img.listaParedeTemporaria = []
                     
                 elif sensor.distanciasMapeadas[0] == 0:
                     sensor.escreveNoArduino('ACERTAPOS', sensor)
-            
+
+            img.listaParedeTemporaria = []            
             sensor.percorreAngulos(partida, anda.frente, img, arq, sensor)
-                
-                    
+            
         anda.original = True
         return 'SAIR'
         arduino.close()
@@ -1113,7 +1218,7 @@ class EncontraPossiveisPosicoes():
     def eliminaPosicoesDoVetor(self, arq, direcoes, sensor, img, anda, partida, mapeamentoDoRobo):
         # Gira 360º mapeando cada direção para tentar achar sua localização
         # Limpa a lista de escaneamento
-        img.lista_compara_distancias = []
+        #img.lista_compara_distancias = []
         sensor.distanciasOriginal = [0,0,0,0,0] 
         img.lista_direcoes = []
         listaPosicoesTEMP = []
